@@ -16,3 +16,6 @@ Help students discover high quality learning content while empowering instructor
 
 # Core features
 - [Here is a link to our core features & technologies](https://github.com/fruitlesspeak/CourseHub/blob/main/CoreFeatures.md)
+
+# Block diagram
+- [Here is a link to our block diagram](https://github.com/fruitlesspeak/CourseHub/blob/main/BlockDiagram.md)
