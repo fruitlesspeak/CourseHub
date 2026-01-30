@@ -15,11 +15,11 @@
 ### Attendance
 - Everyone was present
 ### Discussion
-- Presentation and block diagram
-- Decided on Pankaj for presenting
-- Opeyemi and Pankaj for block diagram
-- Decided team name
-- Mohamed on user stories
-- Pankaj set up GitHub repo
-- Updated Google sheets for class info
-- Explained project setup and tech
+- Reviewed presentation and block diagram
+- Presenter: Pankaj
+- Block diagram: Opeyemi and Pankaj
+- Decided on team name
+- Mohamed will work on user stories
+- Pankaj set up the GitHub repository
+- Updated Google Sheets with class information
+- Explained project setup and chosen technologies
