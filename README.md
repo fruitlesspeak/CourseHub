@@ -14,5 +14,5 @@ Help students discover high quality learning content while empowering instructor
 - Secondary Users: Course Administrators (e.g., academic institutions).
 - Developers: 5-member development team.
 
-
-
+# Core features
+- [Here is a link to our core features & technologies](https://github.com/fruitlesspeak/CourseHub/blob/main/CoreFeatures.md)
