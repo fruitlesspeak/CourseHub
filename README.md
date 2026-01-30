@@ -19,3 +19,6 @@ Help students discover high quality learning content while empowering instructor
 
 # Block diagram
 - [Here is a link to our block diagram](https://github.com/fruitlesspeak/CourseHub/blob/main/BlockDiagram.md)
+
+# Meeting minutes
+- [Here is a link to our meeting minutes](https://github.com/fruitlesspeak/CourseHub/blob/main/MeetingMinutes.md)
