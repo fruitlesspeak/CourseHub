@@ -1,0 +1,25 @@
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Node/Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.env.local
+
+# Maven/Backend
+backend/target/
+backend/.classpath
+backend/.project
+backend/.settings/
+backend/bin/
+
+# Docker
+.env.local
+
+# OS
+.DS_Store
+Thumbs.db
