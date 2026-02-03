@@ -23,3 +23,16 @@
 - Pankaj set up the GitHub repository
 - Updated Google Sheets with class information
 - Explained project setup and chosen technologies
+
+## Meeting 3 (TA meeting)
+### Length of meeting
+- 30 minutes
+### Attendance
+- Everyone was present + the TA
+### Discussion
+- Pitched the idea to the TA
+- Explained technologies to be used
+- Showed GitHub repository: readme file, block diagram, meeting minutes, commits, issues for user stories
+### Outcomes
+- Add estimation to user stories and tasks
+- Choose branching strategy
