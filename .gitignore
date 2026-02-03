@@ -19,6 +19,7 @@ backend/bin/
 
 # Docker
 .env.local
+.env
 
 # OS
 .DS_Store
