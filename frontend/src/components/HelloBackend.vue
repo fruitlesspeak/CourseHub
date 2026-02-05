@@ -6,11 +6,11 @@
     </button>
 
     <div v-if="appStore.error" class="error">
-      ❌ Error: {{ appStore.error }}
+      Error: {{ appStore.error }}
     </div>
 
     <div v-else-if="appStore.backendMessage" class="message">
-      ✅ {{ appStore.backendMessage }}
+      {{ appStore.backendMessage }}
     </div>
   </div>
 </template>
