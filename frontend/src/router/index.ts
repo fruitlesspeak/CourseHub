@@ -5,8 +5,8 @@ import HelloBackend from '../components/HelloBackend.vue'
 const routes: Array<RouteRecordRaw> = [
   {
     path: '/',
-    name: 'Home',
-    component: () => import('../views/Home.vue')
+    name: 'HomeView',
+    component: () => import('../views/HomeView.vue')
   },
   {
     path: '/hello',
