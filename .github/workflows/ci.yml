@@ -48,10 +48,6 @@ jobs:
           SPRING_DATASOURCE_USERNAME: appuser
           SPRING_DATASOURCE_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
 
-      - name: Generate test coverage report
-        working-directory: ./backend
-        run: mvn jacoco:report
-
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v4
