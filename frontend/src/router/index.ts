@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import type { RouteRecordRaw } from 'vue-router'
 import HelloBackend from '../components/HelloBackend.vue'
+import RegisterView from "@/views/RegisterView.vue";
 
 const routes: Array<RouteRecordRaw> = [
   {
@@ -12,7 +13,13 @@ const routes: Array<RouteRecordRaw> = [
     path: '/hello',
     name: 'HelloBackend',
     component: HelloBackend
+  },
+  {
+    path: "/register",
+    name: "register",
+    component: RegisterView,
   }
+
 ]
 
 const router = createRouter({

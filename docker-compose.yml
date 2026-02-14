@@ -22,6 +22,9 @@ services:
 
   # Spring Boot Backend
   backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
     image: fruitfulpeak/coursehub-backend:latest  # Pulls from Hub
     container_name: app-backend
     depends_on:
@@ -39,6 +42,9 @@ services:
 
   # Vue.js Frontend
   frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
     image: fruitfulpeak/coursehub-frontend:latest  # Pulls from Hub
     container_name: app-frontend
     depends_on:
