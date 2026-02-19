@@ -60,6 +60,21 @@
         </div>
 
         <div class="field">
+          <label class="label" for="password">Confirm Password</label>
+          <input
+            id="password"
+            class="input"
+            v-model="form.confirmPassword"
+            type="password"
+            autocomplete="new-password"
+            placeholder="••••••••"
+            minlength="8"
+            required
+          />
+          <p class="hint">Re-enter your password.</p>
+        </div>
+
+        <div class="field">
           <div class="label">I am a</div>
           <div class="roleRow" role="radiogroup" aria-label="Role">
             <button
@@ -121,6 +136,7 @@ const form = reactive({
   name: "",
   email: "",
   password: "",
+  confirmPassword: "",
   role: "STUDENT", // default matches your screenshot
 });
 
@@ -128,6 +144,7 @@ function validate() {
   if (!form.name) return "Full name is required.";
   if (!form.email) return "Email is required.";
   if (!form.password || form.password.length < 8) return "Password must be at least 8 characters.";
+  if(form.password !== form.confirmPassword) return "Passwords do not match.";
   if (!form.role) return "Role is required.";
   return "";
 }
