@@ -1,5 +1,7 @@
 package com.example.backend.auth;
 
+import com.example.backend.user.User;
+import com.example.backend.user.UserRepository;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.security.crypto.password.PasswordEncoder;
