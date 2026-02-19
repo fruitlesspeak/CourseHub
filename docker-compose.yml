@@ -25,6 +25,7 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
+    image: fruitfulpeak/coursehub-backend:latest  # Pulls from Hub
     container_name: app-backend
     depends_on:
       db:
@@ -44,6 +45,7 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+    image: fruitfulpeak/coursehub-frontend:latest  # Pulls from Hub
     container_name: app-frontend
     depends_on:
       - backend
