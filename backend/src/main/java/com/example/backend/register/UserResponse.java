@@ -1,5 +1,8 @@
 package com.example.backend.register;
 
+import com.example.backend.user.User;
+import com.example.backend.user.UserRole;
+
 public record UserResponse(
         Long id,
         String name,

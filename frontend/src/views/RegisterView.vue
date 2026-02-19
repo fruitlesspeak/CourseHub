@@ -140,6 +140,18 @@ const form = reactive({
   role: "STUDENT", // default matches your screenshot
 });
 
+function resolveDashboardPath(response) {
+  if (typeof response?.dashboardPath === "string" && response.dashboardPath.startsWith("/")) {
+    return response.dashboardPath;
+  }
+
+  if (response?.userId !== undefined && response?.userId !== null) {
+    return `/dashboard/${encodeURIComponent(String(response.userId))}`;
+  }
+
+  return "/dashboard";
+}
+
 function validate() {
   if (!form.name) return "Full name is required.";
   if (!form.email) return "Email is required.";
@@ -173,8 +185,30 @@ async function onSubmit() {
       return;
     }
 
-    // change if your app uses a different landing route
-    router.push("/dashboard");
+    const loginResponse = await fetch("/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({
+        email: form.email,
+        password: form.password,
+      }),
+    });
+
+    if (!loginResponse.ok) {
+      error.value = "Account created, but automatic sign-in failed. Please sign in.";
+      await router.push({ path: "/login", query: { registered: "1" } });
+      return;
+    }
+
+    let loginData = {};
+    try {
+      loginData = await loginResponse.json();
+    } catch (_e) {
+      loginData = {};
+    }
+
+    await router.push(resolveDashboardPath(loginData));
   } catch (_e) {
     error.value = "Registration failed. Try again.";
   } finally {

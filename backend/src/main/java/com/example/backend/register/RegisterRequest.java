@@ -1,5 +1,6 @@
 package com.example.backend.register;
 
+import com.example.backend.user.UserRole;
 import jakarta.validation.constraints.*;
 
 public record RegisterRequest(
