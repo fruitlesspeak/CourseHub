@@ -4,13 +4,13 @@
     <nav>
       <router-link to="/">Home</router-link>
       <router-link to="/hello">Backend Test</router-link>
+      <router-link to="/login">Login</router-link>
     </nav>
     <router-view />
   </div>
 </template>
 
-<script setup lang="ts">
-</script>
+<script setup lang="ts"></script>
 
 <style scoped>
 nav {

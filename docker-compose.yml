@@ -8,27 +8,29 @@ services:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
-      - "5433:5432"  # Fixed: host 5433 -> container 5432
+      - "5433:5432"
     volumes:
       - db_data:/var/lib/postgresql/data
       - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     networks:
       - app-net
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]  # Uses vars
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 10s
       timeout: 5s
       retries: 5
 
   # Spring Boot Backend
   backend:
-    image: fruitfulpeak/coursehub-backend:latest  # Pulls from Hub
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
     container_name: app-backend
     depends_on:
       db:
         condition: service_healthy
     environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/${POSTGRES_DB}  # Uses var
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/${POSTGRES_DB}
       SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME}
       SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD}
       SPRING_JPA_HIBERNATE_DDL_AUTO: update
@@ -39,7 +41,9 @@ services:
 
   # Vue.js Frontend
   frontend:
-    image: fruitfulpeak/coursehub-frontend:latest  # Pulls from Hub
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
     container_name: app-frontend
     depends_on:
       - backend
