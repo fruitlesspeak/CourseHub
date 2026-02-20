@@ -54,6 +54,27 @@ services:
     networks:
       - app-net
 
+  # Dedicated Test Runner
+  test-runner:
+    image: maven:3.9-eclipse-temurin-21
+    container_name: app-test-runner
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      #Connects the tests to the test database
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/${POSTGRES_DB}
+      SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME}
+      SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD}
+    volumes:
+      - ./backend:/app
+      # Cache Maven dependencies
+      - ~/.m2:/root/.m2
+    working_dir: /app
+    networks:
+      - app-net
+    command: mvn test
+
 networks:
   app-net:
     driver: bridge
