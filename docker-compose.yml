@@ -3,48 +3,67 @@ services:
   db:
     image: postgres:16-alpine
     container_name: app-db
+    restart: unless-stopped
+
     environment:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+
     ports:
-      - "5433:5432"  # Fixed: host 5433 -> container 5432
+      - "5433:5432"
+
     volumes:
+      # persistent data storage
       - db_data:/var/lib/postgresql/data
+      # initialization script
       - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+
     networks:
       - app-net
+
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]  # Uses vars
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 10s
       timeout: 5s
       retries: 5
 
   # Spring Boot Backend
   backend:
-    image: fruitfulpeak/coursehub-backend:latest  # Pulls from Hub
+    image: fruitfulpeak/coursehub-backend:latest
     container_name: app-backend
+    restart: unless-stopped
+
     depends_on:
       db:
         condition: service_healthy
+
     environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/${POSTGRES_DB}  # Uses var
-      SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME}
-      SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD}
-      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/${POSTGRES_DB}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+
+      # Prevent schema mutation
+      SPRING_JPA_HIBERNATE_DDL_AUTO: validate
+
     ports:
       - "8080:8080"
+
     networks:
       - app-net
 
   # Vue.js Frontend
   frontend:
-    image: fruitfulpeak/coursehub-frontend:latest  # Pulls from Hub
+    image: fruitfulpeak/coursehub-frontend:latest
     container_name: app-frontend
+    restart: unless-stopped
+
     depends_on:
       - backend
+
     ports:
       - "80:80"
+
     networks:
       - app-net
 
