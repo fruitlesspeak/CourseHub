@@ -50,7 +50,7 @@ class AuthServiceTest {
 
         assertEquals(1L, response.userId());
         assertEquals(UserRole.STUDENT, response.role());
-        assertEquals("/dashboard/1", response.dashboardPath());
+        assertEquals("/student/dashboard/1", response.dashboardPath());
 
         var session = httpRequest.getSession(false);
         assertNotNull(session);
@@ -84,6 +84,42 @@ class AuthServiceTest {
         MockHttpServletRequest httpRequest = new MockHttpServletRequest();
 
         assertThrows(InvalidCredentialsException.class, () -> authService.login(request, httpRequest));
+        assertNull(httpRequest.getSession(false));
+    }
+
+    @Test
+    void getCurrentSessionWhenAuthenticatedReturnsProfile() {
+        User user = buildUser(1L, "demo@student.coursehub", "hashed-password", UserRole.STUDENT);
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+
+        MockHttpServletRequest httpRequest = new MockHttpServletRequest();
+        var session = httpRequest.getSession(true);
+        session.setAttribute("AUTH_USER_ID", 1L);
+
+        var response = authService.getCurrentSession(httpRequest);
+
+        assertEquals(true, response.isPresent());
+        assertEquals(1L, response.get().userId());
+        assertEquals("Demo User", response.get().name());
+        assertEquals(UserRole.STUDENT, response.get().role());
+        assertEquals("/student/dashboard/1", response.get().dashboardPath());
+    }
+
+    @Test
+    void getCurrentSessionWithoutSessionReturnsEmpty() {
+        MockHttpServletRequest httpRequest = new MockHttpServletRequest();
+        var response = authService.getCurrentSession(httpRequest);
+        assertEquals(true, response.isEmpty());
+    }
+
+    @Test
+    void logoutInvalidatesSession() {
+        MockHttpServletRequest httpRequest = new MockHttpServletRequest();
+        var session = httpRequest.getSession(true);
+        session.setAttribute("AUTH_USER_ID", 1L);
+
+        authService.logout(httpRequest);
+
         assertNull(httpRequest.getSession(false));
     }
 

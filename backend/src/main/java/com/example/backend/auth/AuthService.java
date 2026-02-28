@@ -2,12 +2,14 @@ package com.example.backend.auth;
 
 import com.example.backend.user.User;
 import com.example.backend.user.UserRepository;
+import com.example.backend.user.UserRole;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.Locale;
+import java.util.Optional;
 
 @Service
 public class AuthService {
@@ -38,8 +40,41 @@ public class AuthService {
         session.setAttribute(SESSION_USER_ID, user.getId());
         session.setAttribute(SESSION_USER_ROLE, user.getRole().name());
 
-        String dashboardPath = "/dashboard/" + user.getId();
+        String dashboardPath = buildDashboardPath(user.getRole(), user.getId());
         return new LoginResponse(user.getId(), user.getRole(), dashboardPath);
+    }
+
+    public Optional<AuthSessionResponse> getCurrentSession(HttpServletRequest httpRequest) {
+        HttpSession session = httpRequest.getSession(false);
+        if (session == null) {
+            return Optional.empty();
+        }
+
+        Object sessionUserId = session.getAttribute(SESSION_USER_ID);
+        if (!(sessionUserId instanceof Long userId)) {
+            session.invalidate();
+            return Optional.empty();
+        }
+
+        return userRepository.findById(userId).map(user -> new AuthSessionResponse(
+                user.getId(),
+                user.getName(),
+                user.getEmail(),
+                user.getRole(),
+                buildDashboardPath(user.getRole(), user.getId())
+        ));
+    }
+
+    public void logout(HttpServletRequest httpRequest) {
+        HttpSession session = httpRequest.getSession(false);
+        if (session != null) {
+            session.invalidate();
+        }
+    }
+
+    private static String buildDashboardPath(UserRole role, Long userId) {
+        String prefix = role == UserRole.PROFESSOR ? "/professor/dashboard/" : "/student/dashboard/";
+        return prefix + userId;
     }
 }
 

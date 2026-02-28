@@ -1,0 +1,21 @@
+:root {
+  --font-sans: "Segoe UI", "Inter", "Helvetica Neue", Arial, sans-serif;
+
+  --color-bg-page: #f5f6f9;
+  --color-bg-surface: #ffffff;
+  --color-bg-soft: #eef2ff;
+  --color-text-primary: #111827;
+  --color-text-secondary: #6b7280;
+  --color-border: #e5e7eb;
+  --color-border-muted: #d1d5db;
+
+  --color-brand-500: #4f46e5;
+  --color-brand-600: #4338ca;
+  --color-brand-700: #3730a3;
+
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+
+  --shadow-card: 0 14px 30px rgba(35, 46, 71, 0.12);
+}

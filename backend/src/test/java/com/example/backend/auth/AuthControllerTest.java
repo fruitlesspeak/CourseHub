@@ -10,10 +10,13 @@ import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.util.Optional;
+
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -32,7 +35,7 @@ class AuthControllerTest {
         @Test
         void loginWithValidPayloadReturns200AndResponseBody() throws Exception {
                 when(authService.login(any(LoginRequest.class), any(HttpServletRequest.class)))
-                                .thenReturn(new LoginResponse(1L, UserRole.STUDENT, "/dashboard/1"));
+                                .thenReturn(new LoginResponse(1L, UserRole.STUDENT, "/student/dashboard/1"));
 
                 mockMvc.perform(post("/api/auth/login")
                                 .contentType(MediaType.APPLICATION_JSON_VALUE)
@@ -46,7 +49,7 @@ class AuthControllerTest {
                                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON_VALUE))
                                 .andExpect(jsonPath("$.userId").value(1))
                                 .andExpect(jsonPath("$.role").value("STUDENT"))
-                                .andExpect(jsonPath("$.dashboardPath").value("/dashboard/1"));
+                                .andExpect(jsonPath("$.dashboardPath").value("/student/dashboard/1"));
 
                 verify(authService).login(any(LoginRequest.class), any(HttpServletRequest.class));
         }
@@ -82,5 +85,40 @@ class AuthControllerTest {
                                 .andExpect(jsonPath("$.message").value("Invalid login payload."));
 
                 verifyNoInteractions(authService);
+        }
+
+        @Test
+        void sessionWhenAuthenticatedReturns200() throws Exception {
+                when(authService.getCurrentSession(any(HttpServletRequest.class)))
+                                .thenReturn(Optional.of(new AuthSessionResponse(
+                                                1L,
+                                                "Student User",
+                                                "student@coursehub.test",
+                                                UserRole.STUDENT,
+                                                "/student/dashboard/1"
+                                )));
+
+                mockMvc.perform(get("/api/auth/session"))
+                                .andExpect(status().isOk())
+                                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON_VALUE))
+                                .andExpect(jsonPath("$.userId").value(1))
+                                .andExpect(jsonPath("$.name").value("Student User"))
+                                .andExpect(jsonPath("$.role").value("STUDENT"));
+        }
+
+        @Test
+        void sessionWhenUnauthenticatedReturns401() throws Exception {
+                when(authService.getCurrentSession(any(HttpServletRequest.class))).thenReturn(Optional.empty());
+
+                mockMvc.perform(get("/api/auth/session"))
+                                .andExpect(status().isUnauthorized());
+        }
+
+        @Test
+        void logoutReturns204() throws Exception {
+                mockMvc.perform(post("/api/auth/logout"))
+                                .andExpect(status().isNoContent());
+
+                verify(authService).logout(any(HttpServletRequest.class));
         }
 }
