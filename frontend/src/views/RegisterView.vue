@@ -124,7 +124,7 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { reactive, ref } from "vue";
 import { useRouter } from "vue-router";
 
@@ -204,12 +204,12 @@ async function onSubmit() {
     let loginData = {};
     try {
       loginData = await loginResponse.json();
-    } catch (_e) {
+    } catch {
       loginData = {};
     }
 
     await router.push(resolveDashboardPath(loginData));
-  } catch (_e) {
+  } catch {
     error.value = "Registration failed. Try again.";
   } finally {
     loading.value = false;
