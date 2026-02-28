@@ -140,7 +140,9 @@ const form = reactive({
   role: "STUDENT", // default matches your screenshot
 });
 
-function resolveDashboardPath(response) {
+function resolveDashboardPath(
+  response: { dashboardPath?: unknown; userId?: unknown } | null | undefined,
+) {
   if (typeof response?.dashboardPath === "string" && response.dashboardPath.startsWith("/")) {
     return response.dashboardPath;
   }
