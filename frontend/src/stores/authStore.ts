@@ -5,7 +5,8 @@ export type AuthRole = "STUDENT" | "PROFESSOR";
 
 export type AuthSession = {
   userId: number;
-  name: string;
+  firstName: string;
+  lastName: string;
   email: string;
   role: AuthRole;
   dashboardPath: string;

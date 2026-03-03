@@ -1,5 +1,9 @@
-package com.example.backend.auth;
+package com.example.backend.controller;
 
+import com.example.backend.dto.auth.AuthSessionResponse;
+import com.example.backend.dto.auth.LoginRequest;
+import com.example.backend.dto.auth.LoginResponse;
+import com.example.backend.service.AuthService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;

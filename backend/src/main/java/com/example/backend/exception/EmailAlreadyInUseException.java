@@ -1,4 +1,4 @@
-package com.example.backend.register;
+package com.example.backend.exception;
 
 public class EmailAlreadyInUseException extends RuntimeException {
     public EmailAlreadyInUseException() {

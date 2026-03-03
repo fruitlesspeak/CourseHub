@@ -1,5 +1,4 @@
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
-CREATE EXTENSION IF NOT EXISTS citext;
 
 -- Drop in correct dependency order/ just in case the script is re-run during development
 DROP TABLE IF EXISTS courses;
@@ -8,7 +7,7 @@ DROP TABLE IF EXISTS users CASCADE;
 CREATE TABLE users (
   id            SERIAL PRIMARY KEY,
   uuid          UUID DEFAULT gen_random_uuid() UNIQUE NOT NULL,
-  email         CITEXT UNIQUE NOT NULL,
+  email         VARCHAR(320) UNIQUE NOT NULL,
   password_hash VARCHAR(255) NOT NULL,
   first_name    VARCHAR(100),
   last_name     VARCHAR(100),

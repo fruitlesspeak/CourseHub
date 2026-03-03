@@ -1,32 +1,47 @@
 <template>
   <div class="hello-backend">
     <h2>Backend Connection Test</h2>
-    <button @click="handleFetch" :disabled="appStore.isLoading">
-      {{ appStore.isLoading ? 'Loading...' : 'Fetch from Backend' }}
+    <button @click="handleFetch" :disabled="isLoading">
+      {{ isLoading ? 'Loading...' : 'Fetch from Backend' }}
     </button>
 
-    <div v-if="appStore.error" class="error">
-      Error: {{ appStore.error }}
+    <div v-if="error" class="error">
+      Error: {{ error }}
     </div>
 
-    <div v-else-if="appStore.backendMessage" class="message">
-      {{ appStore.backendMessage }}
+    <div v-else-if="backendMessage" class="message">
+      {{ backendMessage }}
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
-import { useAppStore } from '../stores/appStore.ts'
+import { computed, ref } from 'vue'
 
-const appStore = useAppStore()
+const isLoading = ref(false)
+const error = ref('')
+const backendMessage = ref('')
 
 const apiUrl = computed(() => {
   return import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'
 })
 
 const handleFetch = async () => {
-  await appStore.fetchBackendMessage(apiUrl.value)
+  isLoading.value = true
+  error.value = ''
+  backendMessage.value = ''
+  try {
+    const response = await fetch(`${apiUrl.value}/api/hello`)
+    if (!response.ok) {
+      error.value = `Request failed (${response.status})`
+      return
+    }
+    backendMessage.value = await response.text()
+  } catch {
+    error.value = 'Unable to reach backend.'
+  } finally {
+    isLoading.value = false
+  }
 }
 </script>
 

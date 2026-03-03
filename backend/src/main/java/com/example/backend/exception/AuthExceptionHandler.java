@@ -1,4 +1,6 @@
-package com.example.backend.auth;
+package com.example.backend.exception;
+
+import com.example.backend.controller.AuthController;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.MethodArgumentNotValidException;

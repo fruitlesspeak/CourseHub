@@ -1,6 +1,4 @@
-package com.example.backend.api;
-
-import com.example.backend.register.EmailAlreadyInUseException;
+package com.example.backend.exception;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 

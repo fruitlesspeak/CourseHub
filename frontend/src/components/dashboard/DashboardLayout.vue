@@ -67,8 +67,11 @@ const router = useRouter();
 const authStore = useAuthStore();
 
 const displayName = computed(() => {
-  if (authStore.session?.name) {
-    return authStore.session.name;
+  if (authStore.session) {
+    const first = authStore.session.firstName?.trim() ?? "";
+    const last = authStore.session.lastName?.trim() ?? "";
+    const full = `${first} ${last}`.trim();
+    if (full) return full;
   }
 
   return props.defaultName;

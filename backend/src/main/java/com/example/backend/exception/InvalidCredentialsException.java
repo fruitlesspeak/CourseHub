@@ -1,4 +1,4 @@
-package com.example.backend.auth;
+package com.example.backend.exception;
 
 public class InvalidCredentialsException extends RuntimeException {
     public InvalidCredentialsException() {

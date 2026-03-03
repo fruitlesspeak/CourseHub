@@ -1,5 +1,7 @@
 package com.example.backend.auth;
 
+import com.example.backend.exception.AuthExceptionHandler;
+import com.example.backend.exception.InvalidCredentialsException;
 import org.junit.jupiter.api.Test;
 
 import java.util.Map;

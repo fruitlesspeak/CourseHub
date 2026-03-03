@@ -18,14 +18,27 @@
 
       <form class="auth-form register-form" @submit.prevent="onSubmit">
         <div class="auth-field">
-          <label class="auth-label" for="name">Full Name</label>
+          <label class="auth-label" for="firstName">First Name</label>
           <input
-            id="name"
+            id="firstName"
             class="auth-input"
-            v-model.trim="form.name"
+            v-model.trim="form.firstName"
             type="text"
-            autocomplete="name"
-            placeholder="John Doe"
+            autocomplete="given-name"
+            placeholder="John"
+            required
+          />
+        </div>
+
+        <div class="auth-field">
+          <label class="auth-label" for="lastName">Last Name</label>
+          <input
+            id="lastName"
+            class="auth-input"
+            v-model.trim="form.lastName"
+            type="text"
+            autocomplete="family-name"
+            placeholder="Doe"
             required
           />
         </div>
@@ -133,7 +146,8 @@ const loading = ref(false);
 const error = ref("");
 
 const form = reactive({
-  name: "",
+  firstName: "",
+  lastName: "",
   email: "",
   password: "",
   confirmPassword: "",
@@ -141,7 +155,8 @@ const form = reactive({
 });
 
 function validate() {
-  if (!form.name) return "Full name is required.";
+  if (!form.firstName) return "First name is required.";
+  if (!form.lastName) return "Last name is required.";
   if (!form.email) return "Email is required.";
   if (!form.password || form.password.length < 8) return "Password must be at least 8 characters.";
   if (form.password !== form.confirmPassword) return "Passwords do not match.";
@@ -159,7 +174,8 @@ async function onSubmit() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        name: form.name,
+        firstName: form.firstName,
+        lastName: form.lastName,
         email: form.email,
         password: form.password,
         role: form.role,

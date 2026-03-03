@@ -1,5 +1,8 @@
-package com.example.backend.register;
+package com.example.backend.controller;
 
+import com.example.backend.dto.auth.RegisterRequest;
+import com.example.backend.dto.auth.UserResponse;
+import com.example.backend.service.RegisterService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;

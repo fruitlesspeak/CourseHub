@@ -18,7 +18,7 @@ public class User {
     @Column(nullable = false, unique = true, updatable = false)
     private UUID uuid;
 
-    @Column(nullable = false, unique = true)
+    @Column(nullable = false, unique = true, length = 320)
     private String email;
 
     @Column(name = "password_hash", nullable = false)
