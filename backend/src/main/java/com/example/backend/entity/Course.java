@@ -21,8 +21,14 @@ public class Course {
     @Column(nullable = false, length = 255)
     private String title;
 
+    @Column(nullable = false, length = 50)
+    private String code;
+
     @Column(columnDefinition = "TEXT")
     private String description;
+
+    @Column(length = 1000)
+    private String link;
 
     @Column(name = "professor_id", nullable = false)
     private Integer professorId;
@@ -43,12 +49,14 @@ public class Course {
 
     public Course() {}
 
-    public Course(Integer id, UUID uuid, String title, String description,
+    public Course(Integer id, UUID uuid, String title, String code, String description, String link,
                   Integer professorId, OffsetDateTime createdAt, OffsetDateTime updatedAt) {
         this.id          = id;
         this.uuid        = uuid;
         this.title       = title;
+        this.code        = code;
         this.description = description;
+        this.link        = link;
         this.professorId = professorId;
         this.createdAt   = createdAt;
         this.updatedAt   = updatedAt;
@@ -64,8 +72,14 @@ public class Course {
     public String         getTitle()                       { return title; }
     public void           setTitle(String v)               { this.title = v; }
 
+    public String         getCode()                        { return code; }
+    public void           setCode(String v)                { this.code = v; }
+
     public String         getDescription()                 { return description; }
     public void           setDescription(String v)         { this.description = v; }
+
+    public String         getLink()                        { return link; }
+    public void           setLink(String v)                { this.link = v; }
 
     public Integer        getProfessorId()                 { return professorId; }
     public void           setProfessorId(Integer v)        { this.professorId = v; }
@@ -83,20 +97,26 @@ public class Course {
     public static class Builder {
         private Integer id;
         private UUID uuid;
-        private String title, description;
+        private String title;
+        private String code;
+        private String description;
+        private String link;
         private Integer professorId;
-        private OffsetDateTime createdAt, updatedAt;
+        private OffsetDateTime createdAt;
+        private OffsetDateTime updatedAt;
 
         public Builder id(Integer id)                    { this.id = id;           return this; }
         public Builder uuid(UUID uuid)                   { this.uuid = uuid;       return this; }
         public Builder title(String v)                   { this.title = v;         return this; }
+        public Builder code(String v)                    { this.code = v;          return this; }
         public Builder description(String v)             { this.description = v;   return this; }
+        public Builder link(String v)                    { this.link = v;          return this; }
         public Builder professorId(Integer v)            { this.professorId = v;   return this; }
         public Builder createdAt(OffsetDateTime v)       { this.createdAt = v;     return this; }
         public Builder updatedAt(OffsetDateTime v)       { this.updatedAt = v;     return this; }
 
         public Course build() {
-            return new Course(id, uuid, title, description, professorId, createdAt, updatedAt);
+            return new Course(id, uuid, title, code, description, link, professorId, createdAt, updatedAt);
         }
     }
 }

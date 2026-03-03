@@ -51,7 +51,9 @@ CREATE TABLE courses (
   id           SERIAL PRIMARY KEY,
   uuid         UUID DEFAULT gen_random_uuid() UNIQUE NOT NULL,
   title        VARCHAR(255) NOT NULL,
+  code         VARCHAR(50) NOT NULL,
   description  TEXT,
+  link         VARCHAR(1000),
   professor_id INTEGER NOT NULL,
   created_at   TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
   updated_at   TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
@@ -64,6 +66,7 @@ CREATE TABLE courses (
 
 CREATE INDEX idx_courses_professor_id ON courses(professor_id);
 CREATE INDEX idx_courses_title        ON courses(title);
+CREATE INDEX idx_courses_code         ON courses(code);
 
 CREATE TRIGGER trg_courses_updated_at
   BEFORE UPDATE ON courses

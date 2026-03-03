@@ -8,6 +8,8 @@ import jakarta.persistence.EntityNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.List;
 import java.util.UUID;
 
@@ -25,13 +27,15 @@ public class CourseService {
 
     // ── Create ────────────────────────────────────────────────────────────────
 
-    public CourseDto.Response create(CourseDto.CreateRequest req) {
-        ensureProfessorExists(req.getProfessorId());
+    public CourseDto.Response create(CourseDto.CreateRequest req, Integer professorId) {
+        ensureProfessorExists(professorId);
 
         Course course = Course.builder()
                 .title(req.getTitle())
+                .code(req.getCode())
                 .description(req.getDescription())
-                .professorId(req.getProfessorId())
+                .link(normalizeCourseLink(req.getLink()))
+                .professorId(professorId)
                 .build();
 
         return toResponse(courseRepository.save(course));
@@ -67,7 +71,9 @@ public class CourseService {
         Course course = getByUuid(uuid);
 
         if (req.getTitle()       != null) course.setTitle(req.getTitle());
+        if (req.getCode()        != null) course.setCode(req.getCode());
         if (req.getDescription() != null) course.setDescription(req.getDescription());
+        if (req.getLink()        != null) course.setLink(normalizeCourseLink(req.getLink()));
         if (req.getProfessorId() != null) {
             ensureProfessorExists(req.getProfessorId());
             course.setProfessorId(req.getProfessorId());
@@ -98,12 +104,41 @@ public class CourseService {
         }
     }
 
+    private static String normalizeCourseLink(String rawLink) {
+        if (rawLink == null) {
+            return null;
+        }
+
+        String trimmed = rawLink.trim();
+        if (trimmed.isEmpty()) {
+            return null;
+        }
+
+        String normalized = trimmed.startsWith("www.") ? "https://" + trimmed : trimmed;
+        if (!normalized.startsWith("https://")) {
+            throw new IllegalArgumentException("Course link must start with https:// or www.");
+        }
+
+        try {
+            URI uri = new URI(normalized);
+            if (uri.getHost() == null || uri.getHost().isBlank()) {
+                throw new IllegalArgumentException("Course link is invalid.");
+            }
+        } catch (URISyntaxException e) {
+            throw new IllegalArgumentException("Course link is invalid.");
+        }
+
+        return normalized;
+    }
+
     private CourseDto.Response toResponse(Course c) {
         return CourseDto.Response.builder()
                 .id(c.getId())
                 .uuid(c.getUuid())
                 .title(c.getTitle())
+                .code(c.getCode())
                 .description(c.getDescription())
+                .link(c.getLink())
                 .professorId(c.getProfessorId())
                 .createdAt(c.getCreatedAt())
                 .updatedAt(c.getUpdatedAt())

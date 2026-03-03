@@ -1,7 +1,8 @@
 import axios from 'axios'
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL ?? 'http://localhost:8080/api',
+  baseURL: import.meta.env.VITE_API_BASE_URL ?? import.meta.env.VITE_API_URL ?? '/api',
+  withCredentials: true,
   headers: { 'Content-Type': 'application/json' },
 })
 
@@ -43,7 +44,9 @@ export interface Course {
   id:          number
   uuid:        string
   title:       string
+  code:        string
   description: string | null
+  link:        string | null
   professorId: number
   createdAt:   string
   updatedAt:   string
@@ -51,13 +54,17 @@ export interface Course {
 
 export interface CreateCoursePayload {
   title:        string
+  code?:        string
   description?: string
-  professorId:  number
+  link?:        string
+  professorId?: number
 }
 
 export interface UpdateCoursePayload {
   title?:       string
+  code?:        string
   description?: string
+  link?:        string
   professorId?: number
 }
 
