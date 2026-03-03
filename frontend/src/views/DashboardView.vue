@@ -1,6 +1,8 @@
 <template>
   <div class="professor-dashboard">
-    <p v-if="showCourseCreatedNotice" class="notice success" role="status">Course Created</p>
+    <transition name="notice-fade">
+      <p v-if="showCourseCreatedNotice" class="notice success" role="status">Course Created</p>
+    </transition>
 
     <DashboardLayout
       role-label="Professor"
@@ -46,7 +48,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted } from 'vue'
+import { onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import DashboardLayout from '@/components/dashboard/DashboardLayout.vue'
 import { useAuthStore } from '@/stores/authStore'
@@ -57,13 +59,30 @@ const router = useRouter()
 const authStore = useAuthStore()
 const courseStore = useCourseStore()
 
-const showCourseCreatedNotice = computed(() => route.query.courseCreated === '1')
+const showCourseCreatedNotice = ref(route.query.courseCreated === '1')
+let dismissTimer: ReturnType<typeof setTimeout> | null = null
 
 const onCreateCourse = async () => {
   await router.push('/professor/courses/new')
 }
 
+const dismissCourseCreatedNotice = async () => {
+  showCourseCreatedNotice.value = false
+
+  if (route.query.courseCreated === '1') {
+    const nextQuery = { ...route.query }
+    delete nextQuery.courseCreated
+    await router.replace({ query: nextQuery })
+  }
+}
+
 onMounted(async () => {
+  if (showCourseCreatedNotice.value) {
+    dismissTimer = setTimeout(() => {
+      void dismissCourseCreatedNotice()
+    }, 4000)
+  }
+
   if (!authStore.session) {
     await authStore.fetchSession(true)
   }
@@ -71,6 +90,12 @@ onMounted(async () => {
   const professorId = authStore.session?.userId
   if (typeof professorId === 'number') {
     await courseStore.fetchAll({ professorId })
+  }
+})
+
+onBeforeUnmount(() => {
+  if (dismissTimer) {
+    clearTimeout(dismissTimer)
   }
 })
 
@@ -97,6 +122,17 @@ const toCourseHref = (link: string) => {
   background: #f0fdf4;
   color: #166534;
   font-weight: 600;
+}
+
+.notice-fade-enter-active,
+.notice-fade-leave-active {
+  transition: opacity 0.35s ease, transform 0.35s ease;
+}
+
+.notice-fade-enter-from,
+.notice-fade-leave-to {
+  opacity: 0;
+  transform: translateY(-6px);
 }
 
 .state {
