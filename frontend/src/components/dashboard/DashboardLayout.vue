@@ -34,12 +34,14 @@
           </button>
         </div>
 
-        <div class="empty-state">
-          <p>{{ emptyMessage }}</p>
-          <button class="action-btn secondary" type="button" @click="$emit('primaryAction')">
-            {{ emptyActionText }}
-          </button>
-        </div>
+        <slot name="content">
+          <div class="empty-state">
+            <p>{{ emptyMessage }}</p>
+            <button class="action-btn secondary" type="button" @click="$emit('primaryAction')">
+              {{ emptyActionText }}
+            </button>
+          </div>
+        </slot>
       </section>
     </main>
   </div>

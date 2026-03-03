@@ -12,22 +12,29 @@ public class CourseDto {
 
     public static class CreateRequest {
 
-        @NotBlank @Size(max = 255)
+        @NotBlank
+        @Size(max = 255)
         private String title;
+
+        @NotBlank
+        @Size(max = 50)
+        private String code;
 
         private String description;
 
-        @NotNull
-        private Integer professorId;
+        @Size(max = 1000)
+        private String link;
 
         public CreateRequest() {}
 
         public String  getTitle()                              { return title; }
         public void    setTitle(String v)                      { this.title = v; }
+        public String  getCode()                               { return code; }
+        public void    setCode(String v)                       { this.code = v; }
         public String  getDescription()                        { return description; }
         public void    setDescription(String v)                { this.description = v; }
-        public Integer getProfessorId()                        { return professorId; }
-        public void    setProfessorId(Integer v)               { this.professorId = v; }
+        public String  getLink()                               { return link; }
+        public void    setLink(String v)                       { this.link = v; }
     }
 
 
@@ -36,15 +43,27 @@ public class CourseDto {
 
         @Size(max = 255)
         private String  title;
+
+        @Size(max = 50)
+        private String  code;
+
         private String  description;
+
+        @Size(max = 1000)
+        private String  link;
+
         private Integer professorId;
 
         public UpdateRequest() {}
 
         public String  getTitle()                              { return title; }
         public void    setTitle(String v)                      { this.title = v; }
+        public String  getCode()                               { return code; }
+        public void    setCode(String v)                       { this.code = v; }
         public String  getDescription()                        { return description; }
         public void    setDescription(String v)                { this.description = v; }
+        public String  getLink()                               { return link; }
+        public void    setLink(String v)                       { this.link = v; }
         public Integer getProfessorId()                        { return professorId; }
         public void    setProfessorId(Integer v)               { this.professorId = v; }
     }
@@ -54,19 +73,23 @@ public class CourseDto {
         private Integer        id;
         private UUID           uuid;
         private String         title;
+        private String         code;
         private String         description;
+        private String         link;
         private Integer        professorId;
         private OffsetDateTime createdAt;
         private OffsetDateTime updatedAt;
 
         public Response() {}
 
-        public Response(Integer id, UUID uuid, String title, String description,
+        public Response(Integer id, UUID uuid, String title, String code, String description, String link,
                         Integer professorId, OffsetDateTime createdAt, OffsetDateTime updatedAt) {
             this.id          = id;
             this.uuid        = uuid;
             this.title       = title;
+            this.code        = code;
             this.description = description;
+            this.link        = link;
             this.professorId = professorId;
             this.createdAt   = createdAt;
             this.updatedAt   = updatedAt;
@@ -75,7 +98,9 @@ public class CourseDto {
         public Integer        getId()          { return id; }
         public UUID           getUuid()        { return uuid; }
         public String         getTitle()       { return title; }
+        public String         getCode()        { return code; }
         public String         getDescription() { return description; }
+        public String         getLink()        { return link; }
         public Integer        getProfessorId() { return professorId; }
         public OffsetDateTime getCreatedAt()   { return createdAt; }
         public OffsetDateTime getUpdatedAt()   { return updatedAt; }
@@ -83,21 +108,28 @@ public class CourseDto {
         public static Builder builder() { return new Builder(); }
 
         public static class Builder {
-            private Integer id; private UUID uuid;
-            private String title, description;
+            private Integer id;
+            private UUID uuid;
+            private String title;
+            private String code;
+            private String description;
+            private String link;
             private Integer professorId;
-            private OffsetDateTime createdAt, updatedAt;
+            private OffsetDateTime createdAt;
+            private OffsetDateTime updatedAt;
 
-            public Builder id(Integer v)              { this.id = v;          return this; }
-            public Builder uuid(UUID v)               { this.uuid = v;        return this; }
-            public Builder title(String v)            { this.title = v;       return this; }
-            public Builder description(String v)      { this.description = v; return this; }
-            public Builder professorId(Integer v)     { this.professorId = v; return this; }
-            public Builder createdAt(OffsetDateTime v){ this.createdAt = v;   return this; }
-            public Builder updatedAt(OffsetDateTime v){ this.updatedAt = v;   return this; }
+            public Builder id(Integer v)               { this.id = v;          return this; }
+            public Builder uuid(UUID v)                { this.uuid = v;        return this; }
+            public Builder title(String v)             { this.title = v;       return this; }
+            public Builder code(String v)              { this.code = v;        return this; }
+            public Builder description(String v)       { this.description = v; return this; }
+            public Builder link(String v)              { this.link = v;        return this; }
+            public Builder professorId(Integer v)      { this.professorId = v; return this; }
+            public Builder createdAt(OffsetDateTime v) { this.createdAt = v;   return this; }
+            public Builder updatedAt(OffsetDateTime v) { this.updatedAt = v;   return this; }
 
             public Response build() {
-                return new Response(id, uuid, title, description, professorId, createdAt, updatedAt);
+                return new Response(id, uuid, title, code, description, link, professorId, createdAt, updatedAt);
             }
         }
     }
