@@ -47,6 +47,9 @@ export interface Course {
   code:        string
   description: string | null
   link:        string | null
+  tags:        string | null
+  material:    string | null
+  dueDate:     string | null
   professorId: number
   createdAt:   string
   updatedAt:   string
@@ -57,6 +60,9 @@ export interface CreateCoursePayload {
   code?:        string
   description?: string
   link?:        string
+  tags?:        string
+  material?:    string
+  dueDate?:     string
   professorId?: number
 }
 
@@ -65,6 +71,9 @@ export interface UpdateCoursePayload {
   code?:        string
   description?: string
   link?:        string
+  tags?:        string
+  material?:    string
+  dueDate?:     string
   professorId?: number
 }
 

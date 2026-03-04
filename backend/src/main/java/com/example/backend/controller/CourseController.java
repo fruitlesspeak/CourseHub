@@ -60,14 +60,17 @@ public class CourseController {
     @PatchMapping("/{uuid}")
     public ResponseEntity<CourseDto.Response> update(
             @PathVariable UUID uuid,
-            @Valid @RequestBody CourseDto.UpdateRequest req) {
-        return ResponseEntity.ok(courseService.update(uuid, req));
+            @Valid @RequestBody CourseDto.UpdateRequest req,
+            HttpServletRequest httpRequest) {
+        Integer professorId = resolveProfessorIdFromSession(httpRequest);
+        return ResponseEntity.ok(courseService.update(uuid, req, professorId));
     }
 
     /** DELETE /api/courses/{uuid} */
     @DeleteMapping("/{uuid}")
-    public ResponseEntity<Void> delete(@PathVariable UUID uuid) {
-        courseService.delete(uuid);
+    public ResponseEntity<Void> delete(@PathVariable UUID uuid, HttpServletRequest httpRequest) {
+        Integer professorId = resolveProfessorIdFromSession(httpRequest);
+        courseService.delete(uuid, professorId);
         return ResponseEntity.noContent().build();
     }
 
@@ -90,7 +93,7 @@ public class CourseController {
         }
 
         if (!UserRole.PROFESSOR.name().equals(role)) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only professors can create courses.");
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only professors can manage courses.");
         }
 
         return userId;

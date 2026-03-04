@@ -1,5 +1,6 @@
 package com.example.backend.controller;
 
+import com.example.backend.exception.CourseAccessDeniedException;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -17,6 +18,12 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(EntityNotFoundException.class)
     public ResponseEntity<Map<String, String>> handleNotFound(EntityNotFoundException ex) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(Map.of("error", ex.getMessage()));
+    }
+
+    @ExceptionHandler(CourseAccessDeniedException.class)
+    public ResponseEntity<Map<String, String>> handleForbidden(CourseAccessDeniedException ex) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
                 .body(Map.of("error", ex.getMessage()));
     }
 

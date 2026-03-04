@@ -2,6 +2,7 @@ package com.example.backend.service;
 
 import com.example.backend.dto.CourseDto;
 import com.example.backend.entity.Course;
+import com.example.backend.exception.CourseAccessDeniedException;
 import com.example.backend.repository.CourseRepository;
 import com.example.backend.repository.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
@@ -33,8 +34,11 @@ public class CourseService {
         Course course = Course.builder()
                 .title(req.getTitle())
                 .code(req.getCode())
-                .description(req.getDescription())
+                .description(normalizeOptionalText(req.getDescription()))
                 .link(normalizeCourseLink(req.getLink()))
+                .tags(normalizeOptionalText(req.getTags()))
+                .material(normalizeOptionalText(req.getMaterial()))
+                .dueDate(req.getDueDate())
                 .professorId(professorId)
                 .build();
 
@@ -67,25 +71,27 @@ public class CourseService {
 
     // ── Update ────────────────────────────────────────────────────────────────
 
-    public CourseDto.Response update(UUID uuid, CourseDto.UpdateRequest req) {
+    public CourseDto.Response update(UUID uuid, CourseDto.UpdateRequest req, Integer requestingProfessorId) {
         Course course = getByUuid(uuid);
+        ensureProfessorOwnsCourse(course, requestingProfessorId);
 
         if (req.getTitle()       != null) course.setTitle(req.getTitle());
         if (req.getCode()        != null) course.setCode(req.getCode());
-        if (req.getDescription() != null) course.setDescription(req.getDescription());
+        if (req.getDescription() != null) course.setDescription(normalizeOptionalText(req.getDescription()));
         if (req.getLink()        != null) course.setLink(normalizeCourseLink(req.getLink()));
-        if (req.getProfessorId() != null) {
-            ensureProfessorExists(req.getProfessorId());
-            course.setProfessorId(req.getProfessorId());
-        }
+        if (req.getTags()        != null) course.setTags(normalizeOptionalText(req.getTags()));
+        if (req.getMaterial()    != null) course.setMaterial(normalizeOptionalText(req.getMaterial()));
+        if (req.getDueDate()     != null) course.setDueDate(req.getDueDate());
 
         return toResponse(courseRepository.save(course));
     }
 
     // ── Delete ────────────────────────────────────────────────────────────────
 
-    public void delete(UUID uuid) {
-        courseRepository.delete(getByUuid(uuid));
+    public void delete(UUID uuid, Integer requestingProfessorId) {
+        Course course = getByUuid(uuid);
+        ensureProfessorOwnsCourse(course, requestingProfessorId);
+        courseRepository.delete(course);
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
@@ -102,6 +108,21 @@ public class CourseService {
         if (!valid) {
             throw new IllegalArgumentException("No professor found with id: " + professorId);
         }
+    }
+
+    private static void ensureProfessorOwnsCourse(Course course, Integer requestingProfessorId) {
+        if (!course.getProfessorId().equals(requestingProfessorId)) {
+            throw new CourseAccessDeniedException("You can only modify your own courses.");
+        }
+    }
+
+    private static String normalizeOptionalText(String raw) {
+        if (raw == null) {
+            return null;
+        }
+
+        String trimmed = raw.trim();
+        return trimmed.isEmpty() ? null : trimmed;
     }
 
     private static String normalizeCourseLink(String rawLink) {
@@ -139,6 +160,9 @@ public class CourseService {
                 .code(c.getCode())
                 .description(c.getDescription())
                 .link(c.getLink())
+                .tags(c.getTags())
+                .material(c.getMaterial())
+                .dueDate(c.getDueDate())
                 .professorId(c.getProfessorId())
                 .createdAt(c.getCreatedAt())
                 .updatedAt(c.getUpdatedAt())

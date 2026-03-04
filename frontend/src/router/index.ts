@@ -44,6 +44,12 @@ const routes: Array<RouteRecordRaw> = [
     meta: { requiresAuth: true, requiredRole: 'PROFESSOR' },
   },
   {
+    path: '/professor/courses/:uuid/edit',
+    name: 'professor-course-edit',
+    component: ProfessorCreateCourseView,
+    meta: { requiresAuth: true, requiredRole: 'PROFESSOR' },
+  },
+  {
     path: '/student/dashboard/:userId?',
     name: 'student-dashboard',
     component: StudentDashboardView,

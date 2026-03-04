@@ -1,10 +1,20 @@
 <template>
-  <section class="create-course-page" aria-label="Create Course">
-    <div class="create-course-card">
-      <h1 class="title">Create New Course</h1>
-      <p class="subtitle">Share your course content with students.</p>
+  <section class="course-form-page" :aria-label="isEditMode ? 'Edit Course' : 'Create Course'">
+    <div class="course-form-card">
+      <h1 class="title">{{ isEditMode ? 'Edit Course' : 'Create New Course' }}</h1>
+      <p class="subtitle">
+        {{
+          isEditMode
+            ? 'Update your course content for students.'
+            : 'Share your course content with students.'
+        }}
+      </p>
 
-      <form class="form" @submit.prevent="onSubmit">
+      <div v-if="isEditMode && isLoadingCourse" class="notice info" role="status">
+        Loading course details...
+      </div>
+
+      <form v-else class="form" @submit.prevent="onSubmit">
         <label class="field">
           <span>Title *</span>
           <input
@@ -37,6 +47,33 @@
         </label>
 
         <label class="field">
+          <span>Tags</span>
+          <input
+            v-model.trim="form.tags"
+            type="text"
+            maxlength="1000"
+            placeholder="e.g., databases, sql, backend"
+          />
+        </label>
+
+        <label class="field">
+          <span>Material</span>
+          <textarea
+            v-model.trim="form.material"
+            rows="3"
+            placeholder="Optional material summary or notes"
+          />
+        </label>
+
+        <label class="field">
+          <span>Due Date</span>
+          <input
+            v-model="form.dueDate"
+            type="datetime-local"
+          />
+        </label>
+
+        <label class="field">
           <span>Link</span>
           <input
             v-model.trim="form.link"
@@ -53,7 +90,11 @@
             Cancel
           </button>
           <button type="submit" class="btn primary" :disabled="isSubmitting">
-            {{ isSubmitting ? 'Creating...' : 'Create' }}
+            {{
+              isSubmitting
+                ? (isEditMode ? 'Saving...' : 'Creating...')
+                : (isEditMode ? 'Save Changes' : 'Create')
+            }}
           </button>
         </div>
       </form>
@@ -62,22 +103,31 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { computed, onMounted, reactive, ref } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { courseApi } from '@/api'
 import { useCourseStore } from '@/stores/courseStore'
 import { useAuthStore } from '@/stores/authStore'
 
+const route = useRoute()
 const router = useRouter()
 const courseStore = useCourseStore()
 const authStore = useAuthStore()
 
 const isSubmitting = ref(false)
+const isLoadingCourse = ref(false)
 const errorMessage = ref('')
+
+const courseUuid = computed(() => (typeof route.params.uuid === 'string' ? route.params.uuid : ''))
+const isEditMode = computed(() => Boolean(courseUuid.value))
 
 const form = reactive({
   title: '',
   code: '',
   description: '',
+  tags: '',
+  material: '',
+  dueDate: '',
   link: '',
 })
 
@@ -110,6 +160,20 @@ const normalizeAndValidateLink = (rawLink: string): { normalized?: string; error
   return { normalized }
 }
 
+const normalizeAndValidateDueDate = (rawDueDate: string): { iso?: string; error?: string } => {
+  const trimmed = rawDueDate.trim()
+  if (!trimmed) {
+    return { iso: undefined }
+  }
+
+  const parsed = new Date(trimmed)
+  if (Number.isNaN(parsed.getTime())) {
+    return { error: 'Due date is invalid.' }
+  }
+
+  return { iso: parsed.toISOString() }
+}
+
 const onSubmit = async () => {
   errorMessage.value = validateRequiredFields()
   if (errorMessage.value) return
@@ -120,21 +184,37 @@ const onSubmit = async () => {
     return
   }
 
+  const dueDateResult = normalizeAndValidateDueDate(form.dueDate)
+  if (dueDateResult.error) {
+    errorMessage.value = dueDateResult.error
+    return
+  }
+
   isSubmitting.value = true
   try {
-    await courseStore.create({
+    const payload = {
       title: form.title.trim(),
       code: form.code.trim(),
-      description: form.description.trim() || undefined,
-      link: linkResult.normalized,
-    })
+      description: form.description,
+      tags: form.tags,
+      material: form.material,
+      dueDate: dueDateResult.iso,
+      link: linkResult.normalized ?? '',
+    }
 
+    if (isEditMode.value) {
+      await courseStore.update(courseUuid.value, payload)
+      await router.push(authStore.defaultDashboardPath)
+      return
+    }
+
+    await courseStore.create(payload)
     await router.push({
       path: authStore.defaultDashboardPath,
       query: { courseCreated: '1' },
     })
   } catch (e: unknown) {
-    errorMessage.value = extractError(e) ?? 'Unable to create course right now.'
+    errorMessage.value = extractError(e) ?? 'Unable to save this course right now.'
   } finally {
     isSubmitting.value = false
   }
@@ -142,6 +222,43 @@ const onSubmit = async () => {
 
 const goBack = async () => {
   await router.push(authStore.defaultDashboardPath)
+}
+
+onMounted(async () => {
+  if (!isEditMode.value) {
+    return
+  }
+
+  isLoadingCourse.value = true
+  try {
+    const { data } = await courseApi.getOne(courseUuid.value)
+    form.title = data.title ?? ''
+    form.code = data.code ?? ''
+    form.description = data.description ?? ''
+    form.tags = data.tags ?? ''
+    form.material = data.material ?? ''
+    form.dueDate = toDateTimeLocal(data.dueDate)
+    form.link = data.link ?? ''
+  } catch (e: unknown) {
+    errorMessage.value = extractError(e) ?? 'Unable to load course details.'
+  } finally {
+    isLoadingCourse.value = false
+  }
+})
+
+function toDateTimeLocal(iso: string | null): string {
+  if (!iso) return ''
+  const date = new Date(iso)
+  if (Number.isNaN(date.getTime())) return ''
+
+  const pad = (n: number) => String(n).padStart(2, '0')
+  const year = date.getFullYear()
+  const month = pad(date.getMonth() + 1)
+  const day = pad(date.getDate())
+  const hours = pad(date.getHours())
+  const minutes = pad(date.getMinutes())
+
+  return `${year}-${month}-${day}T${hours}:${minutes}`
 }
 
 function extractError(e: unknown): string | null {
@@ -154,7 +271,7 @@ function extractError(e: unknown): string | null {
 </script>
 
 <style scoped>
-.create-course-page {
+.course-form-page {
   min-height: 100vh;
   background: var(--color-bg-page);
   display: grid;
@@ -162,8 +279,8 @@ function extractError(e: unknown): string | null {
   padding: 1rem;
 }
 
-.create-course-card {
-  width: min(42rem, 96vw);
+.course-form-card {
+  width: min(46rem, 96vw);
   background: var(--color-bg-surface);
   border: 1px solid var(--color-border);
   border-radius: 0.85rem;
@@ -203,13 +320,22 @@ textarea {
   font: inherit;
 }
 
+.notice {
+  border-radius: 0.6rem;
+  padding: 0.6rem 0.75rem;
+  margin: 0;
+}
+
+.notice.info {
+  border: 1px solid #bfdbfe;
+  background: #eff6ff;
+  color: #1e3a8a;
+}
+
 .notice.error {
   border: 1px solid #fecaca;
   background: #fef2f2;
   color: #991b1b;
-  border-radius: 0.6rem;
-  padding: 0.6rem 0.75rem;
-  margin: 0;
 }
 
 .actions {

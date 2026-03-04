@@ -30,6 +30,15 @@ public class Course {
     @Column(length = 1000)
     private String link;
 
+    @Column(length = 1000)
+    private String tags;
+
+    @Column(columnDefinition = "TEXT")
+    private String material;
+
+    @Column(name = "due_date")
+    private OffsetDateTime dueDate;
+
     @Column(name = "professor_id", nullable = false)
     private Integer professorId;
 
@@ -50,13 +59,17 @@ public class Course {
     public Course() {}
 
     public Course(Integer id, UUID uuid, String title, String code, String description, String link,
-                  Integer professorId, OffsetDateTime createdAt, OffsetDateTime updatedAt) {
+                  String tags, String material, OffsetDateTime dueDate, Integer professorId,
+                  OffsetDateTime createdAt, OffsetDateTime updatedAt) {
         this.id          = id;
         this.uuid        = uuid;
         this.title       = title;
         this.code        = code;
         this.description = description;
         this.link        = link;
+        this.tags        = tags;
+        this.material    = material;
+        this.dueDate     = dueDate;
         this.professorId = professorId;
         this.createdAt   = createdAt;
         this.updatedAt   = updatedAt;
@@ -81,6 +94,15 @@ public class Course {
     public String         getLink()                        { return link; }
     public void           setLink(String v)                { this.link = v; }
 
+    public String         getTags()                        { return tags; }
+    public void           setTags(String v)                { this.tags = v; }
+
+    public String         getMaterial()                    { return material; }
+    public void           setMaterial(String v)            { this.material = v; }
+
+    public OffsetDateTime getDueDate()                     { return dueDate; }
+    public void           setDueDate(OffsetDateTime v)     { this.dueDate = v; }
+
     public Integer        getProfessorId()                 { return professorId; }
     public void           setProfessorId(Integer v)        { this.professorId = v; }
 
@@ -101,6 +123,9 @@ public class Course {
         private String code;
         private String description;
         private String link;
+        private String tags;
+        private String material;
+        private OffsetDateTime dueDate;
         private Integer professorId;
         private OffsetDateTime createdAt;
         private OffsetDateTime updatedAt;
@@ -111,12 +136,16 @@ public class Course {
         public Builder code(String v)                    { this.code = v;          return this; }
         public Builder description(String v)             { this.description = v;   return this; }
         public Builder link(String v)                    { this.link = v;          return this; }
+        public Builder tags(String v)                    { this.tags = v;          return this; }
+        public Builder material(String v)                { this.material = v;      return this; }
+        public Builder dueDate(OffsetDateTime v)         { this.dueDate = v;       return this; }
         public Builder professorId(Integer v)            { this.professorId = v;   return this; }
         public Builder createdAt(OffsetDateTime v)       { this.createdAt = v;     return this; }
         public Builder updatedAt(OffsetDateTime v)       { this.updatedAt = v;     return this; }
 
         public Course build() {
-            return new Course(id, uuid, title, code, description, link, professorId, createdAt, updatedAt);
+            return new Course(id, uuid, title, code, description, link, tags, material, dueDate,
+                    professorId, createdAt, updatedAt);
         }
     }
 }
