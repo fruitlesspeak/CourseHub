@@ -3,6 +3,7 @@
     <transition name="notice-fade">
       <p v-if="showCourseCreatedNotice" class="notice success" role="status">Course Created</p>
     </transition>
+    <p v-if="actionError" class="notice error" role="alert">{{ actionError }}</p>
 
     <DashboardLayout
       role-label="Professor"
@@ -33,6 +34,15 @@
               >
                 Open course link
               </a>
+              <p v-if="course.tags" class="course-meta"><strong>Tags:</strong> {{ course.tags }}</p>
+              <p v-if="course.material" class="course-meta"><strong>Material:</strong> {{ course.material }}</p>
+              <p v-if="course.dueDate" class="course-meta">
+                <strong>Due:</strong> {{ formatDateTime(course.dueDate) }}
+              </p>
+              <div class="course-actions">
+                <button type="button" class="course-btn edit" @click="onEditCourse(course.uuid)">Edit</button>
+                <button type="button" class="course-btn delete" @click="onDeleteCourse(course.uuid)">Delete</button>
+              </div>
             </div>
             <time class="created-at">{{ formatDate(course.createdAt) }}</time>
           </article>
@@ -51,6 +61,7 @@
 import { onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import DashboardLayout from '@/components/dashboard/DashboardLayout.vue'
+import type { Course } from '@/api'
 import { useAuthStore } from '@/stores/authStore'
 import { useCourseStore } from '@/stores/courseStore'
 
@@ -60,10 +71,28 @@ const authStore = useAuthStore()
 const courseStore = useCourseStore()
 
 const showCourseCreatedNotice = ref(route.query.courseCreated === '1')
+const actionError = ref('')
 let dismissTimer: ReturnType<typeof setTimeout> | null = null
 
 const onCreateCourse = async () => {
   await router.push('/professor/courses/new')
+}
+
+const onEditCourse = async (uuid: Course['uuid']) => {
+  actionError.value = ''
+  await router.push(`/professor/courses/${encodeURIComponent(uuid)}/edit`)
+}
+
+const onDeleteCourse = async (uuid: Course['uuid']) => {
+  actionError.value = ''
+  const confirmed = window.confirm('Delete this course permanently? This cannot be undone.')
+  if (!confirmed) return
+
+  try {
+    await courseStore.remove(uuid)
+  } catch (e: unknown) {
+    actionError.value = extractError(e) ?? 'Unable to delete this course right now.'
+  }
 }
 
 const dismissCourseCreatedNotice = async () => {
@@ -103,8 +132,20 @@ const formatDate = (isoDate: string) => {
   return new Date(isoDate).toLocaleDateString()
 }
 
+const formatDateTime = (isoDate: string) => {
+  return new Date(isoDate).toLocaleString()
+}
+
 const toCourseHref = (link: string) => {
   return link.startsWith('www.') ? `https://${link}` : link
+}
+
+function extractError(e: unknown): string | null {
+  if (e && typeof e === 'object' && 'response' in e) {
+    const response = (e as { response?: { data?: { error?: string; message?: string } } }).response
+    return response?.data?.error ?? response?.data?.message ?? null
+  }
+  return null
 }
 </script>
 
@@ -121,6 +162,17 @@ const toCourseHref = (link: string) => {
   border: 1px solid #bbf7d0;
   background: #f0fdf4;
   color: #166534;
+  font-weight: 600;
+}
+
+.notice.error {
+  max-width: 76rem;
+  margin: 0.65rem auto 0;
+  border: 1px solid #fecaca;
+  background: #fef2f2;
+  color: #991b1b;
+  border-radius: 0.7rem;
+  padding: 0.7rem 0.9rem;
   font-weight: 600;
 }
 
@@ -210,6 +262,38 @@ const toCourseHref = (link: string) => {
 
 .course-link:hover {
   text-decoration: underline;
+}
+
+.course-meta {
+  margin: 0.4rem 0 0;
+  color: var(--color-text-secondary);
+  font-size: 0.9rem;
+}
+
+.course-actions {
+  margin-top: 0.7rem;
+  display: flex;
+  gap: 0.5rem;
+}
+
+.course-btn {
+  border-radius: 0.55rem;
+  padding: 0.35rem 0.7rem;
+  border: 1px solid transparent;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.course-btn.edit {
+  background: #e0f2fe;
+  border-color: #bae6fd;
+  color: #075985;
+}
+
+.course-btn.delete {
+  background: #fee2e2;
+  border-color: #fecaca;
+  color: #991b1b;
 }
 
 .created-at {
