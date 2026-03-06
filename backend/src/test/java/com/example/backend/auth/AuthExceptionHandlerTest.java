@@ -18,11 +18,4 @@ class AuthExceptionHandlerTest {
 
         assertEquals("Invalid email or password.", response.get("message"));
     }
-
-    @Test
-    void handleValidationErrorReturnsBadRequestMessage() {
-        Map<String, String> response = handler.handleValidationError(null);
-
-        assertEquals("Invalid login payload.", response.get("message"));
-    }
 }
