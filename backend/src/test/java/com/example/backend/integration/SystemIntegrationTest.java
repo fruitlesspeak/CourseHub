@@ -527,4 +527,131 @@ public class SystemIntegrationTest {
                         .value("Searchable Course Alpha"))
                 .andExpect(jsonPath("$.length()").value(1));
     }
+
+    // ============================================================
+    // TEST 11 — Duplicate registration conflict contract
+    // ============================================================
+    @Test
+    void duplicateRegistrationReturnsConflictWithExpectedMessage() throws Exception {
+        String registerRequest = """
+                {
+                    "email": "duplicate@test.com",
+                    "password": "password123",
+                    "firstName": "Dup",
+                    "lastName": "User",
+                    "role": "STUDENT"
+                }
+                """;
+
+        mockMvc.perform(post("/api/auth/register")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(registerRequest))
+                .andExpect(status().isCreated());
+
+        mockMvc.perform(post("/api/auth/register")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(registerRequest))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message").value("Email already in use"));
+    }
+
+    // ============================================================
+    // TEST 12 — Login/session contract for both roles
+    // ============================================================
+    @Test
+    void loginSessionReturnsRoleUserIdAndDashboardPathForEachRole() throws Exception {
+        MockHttpSession professorSession = registerAndLogin(
+                "prof-session@test.com",
+                "password123",
+                "Prof",
+                "Session",
+                "PROFESSOR");
+        Integer professorId = (Integer) professorSession.getAttribute("AUTH_USER_ID");
+
+        mockMvc.perform(get("/api/auth/session").session(professorSession))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.role").value("PROFESSOR"))
+                .andExpect(jsonPath("$.userId").value(professorId))
+                .andExpect(jsonPath("$.dashboardPath").value("/professor/dashboard/" + professorId));
+
+        MockHttpSession studentSession = registerAndLogin(
+                "student-session@test.com",
+                "password123",
+                "Student",
+                "Session",
+                "STUDENT");
+        Integer studentId = (Integer) studentSession.getAttribute("AUTH_USER_ID");
+
+        mockMvc.perform(get("/api/auth/session").session(studentSession))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.role").value("STUDENT"))
+                .andExpect(jsonPath("$.userId").value(studentId))
+                .andExpect(jsonPath("$.dashboardPath").value("/student/dashboard/" + studentId));
+    }
+
+    // ============================================================
+    // TEST 13 — Logout invalidates auth/session endpoint
+    // ============================================================
+    @Test
+    void logoutShouldInvalidateAuthSessionEndpoint() throws Exception {
+        MockHttpSession session = registerAndLogin(
+                "logout-session@test.com",
+                "password123",
+                "Logout",
+                "User",
+                "PROFESSOR");
+
+        mockMvc.perform(get("/api/auth/session").session(session))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(post("/api/auth/logout")
+                .session(session))
+                .andExpect(status().isNoContent());
+
+        mockMvc.perform(get("/api/auth/session").session(session))
+                .andExpect(status().isUnauthorized());
+    }
+
+    // ============================================================
+    // TEST 14 — Course creation validation + no DB insert
+    // ============================================================
+    @Test
+    void blankTitleOrCodeReturns422AndDoesNotInsertCourse() throws Exception {
+        MockHttpSession session = registerAndLogin(
+                "course-validation@test.com",
+                "password123",
+                "Course",
+                "Validator",
+                "PROFESSOR");
+
+        int beforeCount = courseRepository.findAll().size();
+
+        mockMvc.perform(post("/api/courses")
+                .session(session)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                        {
+                            "title": "",
+                            "code": "VALID101"
+                        }
+                        """))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.title").exists());
+
+        assertEquals(beforeCount, courseRepository.findAll().size());
+
+        mockMvc.perform(post("/api/courses")
+                .session(session)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                        {
+                            "title": "Validation Course",
+                            "code": ""
+                        }
+                        """))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.code").exists());
+
+        assertEquals(beforeCount, courseRepository.findAll().size());
+    }
 }
