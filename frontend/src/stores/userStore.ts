@@ -27,33 +27,21 @@ export const useUserStore = defineStore('users', () => {
   }
 
   async function create(payload: CreateUserPayload): Promise<User | null> {
-    try {
-      const { data } = await userApi.create(payload)
-      users.value.push(data)
-      return data
-    } catch (e) {
-      throw e // just let the component handle form errors, we dont need a global error for this 
-    }
+    const { data } = await userApi.create(payload)
+    users.value.push(data)
+    return data
   }
 
   async function update(uuid: string, payload: UpdateUserPayload): Promise<User | null> {
-    try {
-      const { data } = await userApi.update(uuid, payload)
-      const idx = users.value.findIndex(u => u.uuid === uuid)
-      if (idx !== -1) users.value[idx] = data
-      return data
-    } catch (e) {
-      throw e
-    }
+    const { data } = await userApi.update(uuid, payload)
+    const idx = users.value.findIndex(u => u.uuid === uuid)
+    if (idx !== -1) users.value[idx] = data
+    return data
   }
 
   async function remove(uuid: string): Promise<void> {
-    try {
-      await userApi.remove(uuid)
-      users.value = users.value.filter(u => u.uuid !== uuid)
-    } catch (e) {
-      throw e
-    }
+    await userApi.remove(uuid)
+    users.value = users.value.filter(u => u.uuid !== uuid)
   }
 
   return { users, loading, error, professors, students, fetchAll, create, update, remove }
