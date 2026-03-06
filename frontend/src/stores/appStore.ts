@@ -1,45 +1,48 @@
-import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
+import { computed, ref } from "vue";
+import { defineStore } from "pinia";
 
-export const useAppStore = defineStore('app', () => {
-  const backendMessage = ref<string>('Loading...')
-  const isLoading = ref<boolean>(false)
-  const error = ref<string | null>(null)
+export const useAppStore = defineStore("app", () => {
+  const backendMessage = ref<string>("Loading...");
+  const isLoading = ref<boolean>(false);
+  const error = ref<string | null>(null);
 
   const setMessage = (msg: string) => {
-    backendMessage.value = msg
-  }
+    backendMessage.value = msg;
+  };
 
   const setLoading = (loading: boolean) => {
-    isLoading.value = loading
-  }
+    isLoading.value = loading;
+  };
 
   const setError = (err: string | null) => {
-    error.value = err
-  }
+    error.value = err;
+  };
 
   const fetchBackendMessage = async (apiUrl: string) => {
-    setLoading(true)
-    setError(null)
+    setLoading(true);
+    setError(null);
     try {
-      const res = await fetch(`${apiUrl}/api/hello`)
-      if (!res.ok) throw new Error(`HTTP ${res.status}`)
-      const data = await res.text()
-      setMessage(data)
+      const normalizedApiBase = apiUrl.endsWith("/api") ? apiUrl : `${apiUrl}/api`;
+      const res = await fetch(`${normalizedApiBase}/hello`, {
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.text();
+      setMessage(data);
     } catch (e) {
-      const errorMsg = e instanceof Error ? e.message : 'Unknown error'
-      setError(errorMsg)
-      setMessage('Failed to load')
+      const errorMsg = e instanceof Error ? e.message : "Unknown error";
+      setError(errorMsg);
+      setMessage("Failed to load");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const messageStatus = computed(() => ({
     message: backendMessage,
     isLoading,
-    error
-  }))
+    error,
+  }));
 
   return {
     backendMessage,
@@ -49,6 +52,6 @@ export const useAppStore = defineStore('app', () => {
     setLoading,
     setError,
     fetchBackendMessage,
-    messageStatus
-  }
-})
+    messageStatus,
+  };
+});

@@ -1,9 +1,14 @@
 <template>
   <div class="hello-backend">
     <h2>Backend Connection Test</h2>
-    <button @click="handleFetch" :disabled="appStore.isLoading">
-      {{ appStore.isLoading ? 'Loading...' : 'Fetch from Backend' }}
-    </button>
+
+    <div class="actions">
+      <button @click="handleFetch" :disabled="appStore.isLoading">
+        {{ appStore.isLoading ? 'Loading...' : 'Fetch from Backend' }}
+      </button>
+
+      <RouterLink to="/" class="home-button">Go back home</RouterLink>
+    </div>
 
     <div v-if="appStore.error" class="error">
       Error: {{ appStore.error }}
@@ -16,18 +21,18 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
-import { useAppStore } from '../stores/appStore.ts'
+import { computed } from "vue";
+import { useAppStore } from "@/stores/appStore";
 
-const appStore = useAppStore()
+const appStore = useAppStore();
 
 const apiUrl = computed(() => {
-  return import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'
-})
+  return import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
+});
 
 const handleFetch = async () => {
-  await appStore.fetchBackendMessage(apiUrl.value)
-}
+  await appStore.fetchBackendMessage(apiUrl.value);
+};
 </script>
 
 <style scoped>
@@ -36,6 +41,12 @@ const handleFetch = async () => {
   border: 1px solid #ccc;
   border-radius: 8px;
   margin: 1rem 0;
+}
+
+.actions {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
 }
 
 button {
@@ -55,6 +66,19 @@ button:hover:not(:disabled) {
 button:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+.home-button {
+  padding: 0.5rem 1rem;
+  border: 1px solid #0066cc;
+  border-radius: 4px;
+  color: #0066cc;
+  text-decoration: none;
+  font-size: 1rem;
+}
+
+.home-button:hover {
+  background-color: #eef6ff;
 }
 
 .error {

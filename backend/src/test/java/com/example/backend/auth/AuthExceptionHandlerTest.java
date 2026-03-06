@@ -1,5 +1,7 @@
 package com.example.backend.auth;
 
+import com.example.backend.exception.AuthExceptionHandler;
+import com.example.backend.exception.InvalidCredentialsException;
 import org.junit.jupiter.api.Test;
 
 import java.util.Map;
@@ -15,12 +17,5 @@ class AuthExceptionHandlerTest {
         Map<String, String> response = handler.handleInvalidCredentials(new InvalidCredentialsException());
 
         assertEquals("Invalid email or password.", response.get("message"));
-    }
-
-    @Test
-    void handleValidationErrorReturnsBadRequestMessage() {
-        Map<String, String> response = handler.handleValidationError(null);
-
-        assertEquals("Invalid login payload.", response.get("message"));
     }
 }

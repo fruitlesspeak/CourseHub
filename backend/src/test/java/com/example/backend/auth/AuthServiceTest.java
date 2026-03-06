@@ -1,8 +1,12 @@
 package com.example.backend.auth;
 
-import com.example.backend.user.User;
-import com.example.backend.user.UserRepository;
-import com.example.backend.user.UserRole;
+import com.example.backend.dto.auth.LoginRequest;
+import com.example.backend.dto.auth.LoginResponse;
+import com.example.backend.entity.User;
+import com.example.backend.entity.UserRole;
+import com.example.backend.exception.InvalidCredentialsException;
+import com.example.backend.repository.UserRepository;
+import com.example.backend.service.AuthService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -40,31 +44,31 @@ class AuthServiceTest {
     void loginWithValidCredentialsCreatesSessionAndReturnsDashboard() {
         LoginRequest request = new LoginRequest("  DEMO@student.coursehub  ", "CourseHub123!");
 
-        User user = buildUser(1L, "demo@student.coursehub", "hashed-password", UserRole.STUDENT);
-        when(userRepository.findByEmailIgnoreCase("demo@student.coursehub")).thenReturn(Optional.of(user));
+        User user = buildUser(1, "demo@student.coursehub", "hashed-password", UserRole.STUDENT);
+        when(userRepository.findByEmail("demo@student.coursehub")).thenReturn(Optional.of(user));
         when(passwordEncoder.matches("CourseHub123!", "hashed-password")).thenReturn(true);
 
         MockHttpServletRequest httpRequest = new MockHttpServletRequest();
 
         LoginResponse response = authService.login(request, httpRequest);
 
-        assertEquals(1L, response.userId());
+        assertEquals(1, response.userId());
         assertEquals(UserRole.STUDENT, response.role());
-        assertEquals("/dashboard/1", response.dashboardPath());
+        assertEquals("/student/dashboard/1", response.dashboardPath());
 
         var session = httpRequest.getSession(false);
         assertNotNull(session);
-        assertEquals(1L, session.getAttribute("AUTH_USER_ID"));
+        assertEquals(1, session.getAttribute("AUTH_USER_ID"));
         assertEquals("STUDENT", session.getAttribute("AUTH_USER_ROLE"));
 
-        verify(userRepository).findByEmailIgnoreCase("demo@student.coursehub");
+        verify(userRepository).findByEmail("demo@student.coursehub");
         verify(passwordEncoder).matches("CourseHub123!", "hashed-password");
     }
 
     @Test
     void loginWithUnknownEmailThrowsInvalidCredentials() {
         LoginRequest request = new LoginRequest("unknown@coursehub.test", "CourseHub123!");
-        when(userRepository.findByEmailIgnoreCase("unknown@coursehub.test")).thenReturn(Optional.empty());
+        when(userRepository.findByEmail("unknown@coursehub.test")).thenReturn(Optional.empty());
 
         MockHttpServletRequest httpRequest = new MockHttpServletRequest();
 
@@ -77,8 +81,8 @@ class AuthServiceTest {
     void loginWithWrongPasswordThrowsInvalidCredentials() {
         LoginRequest request = new LoginRequest("demo@student.coursehub", "WrongPassword123");
 
-        User user = buildUser(1L, "demo@student.coursehub", "hashed-password", UserRole.STUDENT);
-        when(userRepository.findByEmailIgnoreCase("demo@student.coursehub")).thenReturn(Optional.of(user));
+        User user = buildUser(1, "demo@student.coursehub", "hashed-password", UserRole.STUDENT);
+        when(userRepository.findByEmail("demo@student.coursehub")).thenReturn(Optional.of(user));
         when(passwordEncoder.matches("WrongPassword123", "hashed-password")).thenReturn(false);
 
         MockHttpServletRequest httpRequest = new MockHttpServletRequest();
@@ -87,13 +91,51 @@ class AuthServiceTest {
         assertNull(httpRequest.getSession(false));
     }
 
-    private static User buildUser(Long id, String email, String passwordHash, UserRole role) {
+    @Test
+    void getCurrentSessionWhenAuthenticatedReturnsProfile() {
+        User user = buildUser(1, "demo@student.coursehub", "hashed-password", UserRole.STUDENT);
+        when(userRepository.findById(1)).thenReturn(Optional.of(user));
+
+        MockHttpServletRequest httpRequest = new MockHttpServletRequest();
+        var session = httpRequest.getSession(true);
+        session.setAttribute("AUTH_USER_ID", 1);
+
+        var response = authService.getCurrentSession(httpRequest);
+
+        assertEquals(true, response.isPresent());
+        assertEquals(1, response.get().userId());
+        assertEquals("Demo", response.get().firstName());
+        assertEquals("User", response.get().lastName());
+        assertEquals(UserRole.STUDENT, response.get().role());
+        assertEquals("/student/dashboard/1", response.get().dashboardPath());
+    }
+
+    @Test
+    void getCurrentSessionWithoutSessionReturnsEmpty() {
+        MockHttpServletRequest httpRequest = new MockHttpServletRequest();
+        var response = authService.getCurrentSession(httpRequest);
+        assertEquals(true, response.isEmpty());
+    }
+
+    @Test
+    void logoutInvalidatesSession() {
+        MockHttpServletRequest httpRequest = new MockHttpServletRequest();
+        var session = httpRequest.getSession(true);
+        session.setAttribute("AUTH_USER_ID", 1);
+
+        authService.logout(httpRequest);
+
+        assertNull(httpRequest.getSession(false));
+    }
+
+    private static User buildUser(Integer id, String email, String passwordHash, UserRole role) {
         User user = new User();
         user.setId(id);
-        user.setName("Demo User");
+        user.setFirstName("Demo");
+        user.setLastName("User");
         user.setEmail(email);
         user.setPasswordHash(passwordHash);
-        user.setRole(role);
+        user.setProfessor(role == UserRole.PROFESSOR);
         return user;
     }
 }
