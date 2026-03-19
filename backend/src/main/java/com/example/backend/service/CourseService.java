@@ -69,6 +69,12 @@ public class CourseService {
                 .stream().map(this::toResponse).toList();
     }
 
+    @Transactional(readOnly = true)
+    public List<CourseDto.Response> findByTag(String tag) {
+        return courseRepository.findByTagsContainingIgnoreCase(tag)
+                .stream().map(this::toResponse).toList();
+    }
+
     // ── Update ────────────────────────────────────────────────────────────────
 
     public CourseDto.Response update(UUID uuid, CourseDto.UpdateRequest req, Integer requestingProfessorId) {

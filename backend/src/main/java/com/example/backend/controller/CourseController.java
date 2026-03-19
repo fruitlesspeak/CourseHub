@@ -3,6 +3,7 @@ package com.example.backend.controller;
 import com.example.backend.dto.CourseDto;
 import com.example.backend.entity.UserRole;
 import com.example.backend.service.CourseService;
+import com.example.backend.service.EnrollmentService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
@@ -22,10 +23,12 @@ public class CourseController {
     private static final String SESSION_USER_ROLE = "AUTH_USER_ROLE";
 
     private final CourseService courseService;
+    private final EnrollmentService enrollmentService;
 
-    public CourseController(CourseService courseService) {
+    public CourseController(CourseService courseService, EnrollmentService enrollmentService) {
         this.courseService = courseService;
-    }
+        this.enrollmentService = enrollmentService;
+    } 
 
     /** POST /api/courses */
     @PostMapping
@@ -34,6 +37,21 @@ public class CourseController {
             HttpServletRequest httpRequest) {
         Integer professorId = resolveProfessorIdFromSession(httpRequest);
         return ResponseEntity.status(HttpStatus.CREATED).body(courseService.create(req, professorId));
+    }
+
+    /** POST /api/courses/{uuid}/enroll */
+    @PostMapping("/{uuid}/enroll")
+    public ResponseEntity<CourseDto.Response> enroll(
+            @PathVariable UUID uuid,
+            HttpServletRequest httpRequest) {
+
+        Integer studentId = resolveStudentIdFromSession(httpRequest);
+        CourseDto.Response course = courseService.findByUuid(uuid);
+        Integer courseId = course.getId();
+        
+        enrollmentService.enrollOrReactivate(studentId, courseId);
+        return ResponseEntity.status(HttpStatus.CREATED).body(course);
+
     }
 
     /** GET /api/courses?title=&professorId= */
@@ -55,6 +73,19 @@ public class CourseController {
     public ResponseEntity<CourseDto.Response> get(@PathVariable UUID uuid) {
         return ResponseEntity.ok(courseService.findByUuid(uuid));
     }
+
+    /** GET /api/courses */
+    @GetMapping
+    public ResponseEntity<List<CourseDto.Response>> list(
+            @RequestParam(required = false) String tag){
+                
+        List<CourseDto.Response> result;
+        if (tag != null && !tag.isBlank()) result = courseService.findByTag(tag);
+        else  result = courseService.findAll();
+        
+        return ResponseEntity.ok(result);
+    }
+
 
     /** PATCH /api/courses/{uuid} */
     @PatchMapping("/{uuid}")
@@ -94,6 +125,31 @@ public class CourseController {
 
         if (!UserRole.PROFESSOR.name().equals(role)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only professors can manage courses.");
+        }
+
+        return userId;
+    }
+
+    private static Integer resolveStudentIdFromSession(HttpServletRequest request) {
+        HttpSession session = request.getSession(false);
+        if (session == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Authentication required.");
+        }
+
+        Object sessionUserId = session.getAttribute(SESSION_USER_ID);
+        if (!(sessionUserId instanceof Integer userId)) {
+            session.invalidate();
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Authentication required.");
+        }
+
+        Object sessionUserRole = session.getAttribute(SESSION_USER_ROLE);
+        if (!(sessionUserRole instanceof String role)) {
+            session.invalidate();
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Authentication required.");
+        }
+        
+        if (!!UserRole.STUDENT.name().equals(role)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only students can enroll.");
         }
 
         return userId;
