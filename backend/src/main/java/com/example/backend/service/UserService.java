@@ -57,6 +57,11 @@ public class UserService {
     }
 
     @Transactional(readOnly = true)
+    public Integer findUserIdByUuid(UUID uuid) {
+        return getByUuid(uuid).getId();
+    }
+
+    @Transactional(readOnly = true)
     public List<UserDto.Response> findProfessors() {
         return userRepository.findByIsProfessor(true).stream().map(this::toResponse).toList();
     }

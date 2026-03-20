@@ -5,6 +5,7 @@ import com.example.backend.controller.GlobalExceptionHandler;
 import com.example.backend.dto.CourseDto;
 import com.example.backend.exception.CourseAccessDeniedException;
 import com.example.backend.service.CourseService;
+import com.example.backend.service.SessionAuthService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -61,7 +62,7 @@ class CourseControllerTest {
 
     @BeforeEach
     void setUp() {
-        CourseController controller = new CourseController(courseService);
+        CourseController controller = new CourseController(courseService, new SessionAuthService());
         mockMvc = MockMvcBuilders.standaloneSetup(controller)
                 .setControllerAdvice(new GlobalExceptionHandler())
                 .build();
