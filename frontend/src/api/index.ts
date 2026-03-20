@@ -77,6 +77,29 @@ export interface UpdateCoursePayload {
   professorId?: number
 }
 
+export interface ImportantDate {
+  id:              number
+  courseId:        number
+  createdByUserId: number
+  title:           string
+  description:     string | null
+  dueAt:           string
+  createdAt:       string
+  updatedAt:       string
+}
+
+export interface CreateImportantDatePayload {
+  title:       string
+  description?: string
+  dueAt:       string
+}
+
+export interface UpdateImportantDatePayload {
+  title?:       string
+  description?: string
+  dueAt?:       string
+}
+
 export interface ApiError {
   error?: string
   [field: string]: string | undefined
@@ -118,6 +141,25 @@ export const courseApi = {
 
   remove:  (uuid: string) =>
     api.delete<void>(`/courses/${uuid}`),
+}
+
+// -- Important Dates ----------------------------------------------------------
+
+export const importantDateApi = {
+  getAll:  (params: { courseId: number }) =>
+    api.get<ImportantDate[]>('/important-dates', { params }),
+
+  getOne:  (id: number) =>
+    api.get<ImportantDate>(`/important-dates/${id}`),
+
+  create:  (courseId: number, data: CreateImportantDatePayload) =>
+    api.post<ImportantDate>(`/courses/${courseId}/important-dates`, data),
+
+  update:  (id: number, data: UpdateImportantDatePayload) =>
+    api.patch<ImportantDate>(`/important-dates/${id}`, data),
+
+  remove:  (id: number) =>
+    api.delete<void>(`/important-dates/${id}`),
 }
 
 export default api
