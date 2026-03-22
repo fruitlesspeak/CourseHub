@@ -7,6 +7,7 @@ This document describes the GitHub Actions workflows used in CourseHub.
 | Workflow | File | Trigger | Purpose |
 |----------|------|---------|---------|
 | Backend CI | `ci.yml` | Push/PR to `main` | Build and test the Spring Boot backend |
+| Backend Mutation Tests | `mutation.yml` | PR to `main`, push to `main`, manual dispatch | Run PIT mutation testing for the registration and course management services |
 | Frontend CI | `frontend-ci.yml` | Push/PR to `main` | Lint, type-check, test, and build the Vue.js frontend |
 | Docker Build & Publish | `docker-build.yml` | Push/PR to `main` | Build Docker images; publish to ghcr.io on merge to main |
 
@@ -47,6 +48,23 @@ This document describes the GitHub Actions workflows used in CourseHub.
 
 ### Artifacts:
 - `frontend-dist` - Production build output (retained for 7 days)
+
+---
+
+## Backend Mutation Tests (`mutation.yml`)
+
+**Triggers:** Pull request to `main`, push to `main`, or manual dispatch
+
+### What it does:
+1. Sets up JDK 21 with Maven caching
+2. Compiles backend test classes
+3. Runs PIT mutation testing against:
+   - `RegisterService`
+   - `CourseService`
+4. Uploads the generated PIT HTML/XML reports as an artifact
+
+### Artifacts:
+- `backend-mutation-report` - PIT mutation coverage reports from `backend/target/pit-reports/`
 
 ---
 
