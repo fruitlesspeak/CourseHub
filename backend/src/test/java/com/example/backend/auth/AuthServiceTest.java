@@ -20,6 +20,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -41,7 +42,7 @@ class AuthServiceTest {
     }
 
     @Test
-    void loginWithValidCredentialsCreatesSessionAndReturnsDashboard() {
+    void mutation_loginWithValidStudentCredentialsCreatesSessionAndReturnsStudentDashboard() {
         LoginRequest request = new LoginRequest("  DEMO@student.coursehub  ", "CourseHub123!");
 
         User user = buildUser(1, "demo@student.coursehub", "hashed-password", UserRole.STUDENT);
@@ -66,7 +67,32 @@ class AuthServiceTest {
     }
 
     @Test
-    void loginWithUnknownEmailThrowsInvalidCredentials() {
+    void mutation_loginWithValidProfessorCredentialsCreatesSessionAndReturnsProfessorDashboard() {
+        LoginRequest request = new LoginRequest("  ADA@coursehub.test ", "CourseHub123!");
+
+        User user = buildUser(7, "ada@coursehub.test", "hashed-password", UserRole.PROFESSOR);
+        when(userRepository.findByEmail("ada@coursehub.test")).thenReturn(Optional.of(user));
+        when(passwordEncoder.matches("CourseHub123!", "hashed-password")).thenReturn(true);
+
+        MockHttpServletRequest httpRequest = new MockHttpServletRequest();
+
+        LoginResponse response = authService.login(request, httpRequest);
+
+        assertEquals(7, response.userId());
+        assertEquals(UserRole.PROFESSOR, response.role());
+        assertEquals("/professor/dashboard/7", response.dashboardPath());
+
+        var session = httpRequest.getSession(false);
+        assertNotNull(session);
+        assertEquals(7, session.getAttribute("AUTH_USER_ID"));
+        assertEquals("PROFESSOR", session.getAttribute("AUTH_USER_ROLE"));
+
+        verify(userRepository).findByEmail("ada@coursehub.test");
+        verify(passwordEncoder).matches("CourseHub123!", "hashed-password");
+    }
+
+    @Test
+    void mutation_loginWithUnknownEmailThrowsInvalidCredentials() {
         LoginRequest request = new LoginRequest("unknown@coursehub.test", "CourseHub123!");
         when(userRepository.findByEmail("unknown@coursehub.test")).thenReturn(Optional.empty());
 
@@ -78,7 +104,7 @@ class AuthServiceTest {
     }
 
     @Test
-    void loginWithWrongPasswordThrowsInvalidCredentials() {
+    void mutation_loginWithWrongPasswordThrowsInvalidCredentials() {
         LoginRequest request = new LoginRequest("demo@student.coursehub", "WrongPassword123");
 
         User user = buildUser(1, "demo@student.coursehub", "hashed-password", UserRole.STUDENT);
@@ -92,7 +118,7 @@ class AuthServiceTest {
     }
 
     @Test
-    void getCurrentSessionWhenAuthenticatedReturnsProfile() {
+    void mutation_getCurrentSessionWhenAuthenticatedAsStudentReturnsProfile() {
         User user = buildUser(1, "demo@student.coursehub", "hashed-password", UserRole.STUDENT);
         when(userRepository.findById(1)).thenReturn(Optional.of(user));
 
@@ -102,7 +128,7 @@ class AuthServiceTest {
 
         var response = authService.getCurrentSession(httpRequest);
 
-        assertEquals(true, response.isPresent());
+        assertTrue(response.isPresent());
         assertEquals(1, response.get().userId());
         assertEquals("Demo", response.get().firstName());
         assertEquals("User", response.get().lastName());
@@ -111,14 +137,44 @@ class AuthServiceTest {
     }
 
     @Test
-    void getCurrentSessionWithoutSessionReturnsEmpty() {
+    void mutation_getCurrentSessionWhenAuthenticatedAsProfessorReturnsProfessorDashboard() {
+        User user = buildUser(7, "ada@coursehub.test", "hashed-password", UserRole.PROFESSOR);
+        when(userRepository.findById(7)).thenReturn(Optional.of(user));
+
         MockHttpServletRequest httpRequest = new MockHttpServletRequest();
+        var session = httpRequest.getSession(true);
+        session.setAttribute("AUTH_USER_ID", 7);
+
         var response = authService.getCurrentSession(httpRequest);
-        assertEquals(true, response.isEmpty());
+
+        assertTrue(response.isPresent());
+        assertEquals(7, response.get().userId());
+        assertEquals(UserRole.PROFESSOR, response.get().role());
+        assertEquals("/professor/dashboard/7", response.get().dashboardPath());
     }
 
     @Test
-    void logoutInvalidatesSession() {
+    void mutation_getCurrentSessionWithInvalidSessionUserIdReturnsEmptyAndInvalidatesSession() {
+        MockHttpServletRequest httpRequest = new MockHttpServletRequest();
+        var session = httpRequest.getSession(true);
+        session.setAttribute("AUTH_USER_ID", "not-an-integer");
+
+        var response = authService.getCurrentSession(httpRequest);
+
+        assertTrue(response.isEmpty());
+        assertNull(httpRequest.getSession(false));
+        verifyNoInteractions(userRepository);
+    }
+
+    @Test
+    void mutation_getCurrentSessionWithoutSessionReturnsEmpty() {
+        MockHttpServletRequest httpRequest = new MockHttpServletRequest();
+        var response = authService.getCurrentSession(httpRequest);
+        assertTrue(response.isEmpty());
+    }
+
+    @Test
+    void mutation_logoutInvalidatesSession() {
         MockHttpServletRequest httpRequest = new MockHttpServletRequest();
         var session = httpRequest.getSession(true);
         session.setAttribute("AUTH_USER_ID", 1);

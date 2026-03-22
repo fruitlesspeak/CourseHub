@@ -33,9 +33,6 @@ public class RegisterService {
         user.setFirstName(req.firstName().trim());
         user.setLastName(req.lastName().trim());
         user.setProfessor(req.role() == UserRole.PROFESSOR);
-        if (user.isProfessor()) {
-            user.setStudentId(null);
-        }
 
         user = userRepository.save(user);
         return UserResponse.from(user);
