@@ -1,5 +1,5 @@
 <template>
-  <article class="course-card" :class="{ 'is-enrolled': enrolled }">
+  <article class="course-card" :class="{ 'is-enrolled': enrolled }" @click="goToDetail">
     <!-- Color band -->
     <div class="card-band" :style="{ background: bandColor }" aria-hidden="true">
       <span class="card-initial">{{ initial }}</span>
@@ -37,7 +37,7 @@
       </p>
 
       <!-- Action buttons -->
-      <div class="card-footer">
+      <div class="card-footer" @click.stop>
         <template v-if="enrolled">
           <button class="btn btn-enrolled" disabled>
             <svg viewBox="0 0 16 16" fill="none" width="13" height="13" aria-hidden="true">
@@ -73,6 +73,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useRouter } from 'vue-router'
 import type { Course } from '@/api'
 import { parseTags } from '@/stores/enrollmentStore'
 
@@ -83,6 +84,12 @@ const props = defineProps<{
 }>()
 
 defineEmits<{ enroll: [uuid: string] }>()
+
+const router = useRouter()
+
+function goToDetail() {
+  router.push({ name: 'CourseDetail', params: { uuid: props.course.uuid }, query: { from: 'catalog' } })
+}
 
 const BANDS = [
   'linear-gradient(135deg,#1e3a8a,#3b82f6)',
@@ -121,6 +128,7 @@ const formattedDue = computed(() => {
   display: flex;
   flex-direction: column;
   transition: box-shadow 0.18s, transform 0.18s;
+  cursor: pointer;
 }
 .course-card:hover {
   box-shadow: 0 4px 20px rgba(0,0,0,0.08);

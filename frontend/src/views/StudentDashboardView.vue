@@ -40,6 +40,14 @@
                 >
                   View Course
                 </router-link>
+                <button
+                  class="course-btn drop"
+                  type="button"
+                  :disabled="droppingUuids.has(course.uuid)"
+                  @click="onDrop(course.uuid)"
+                >
+                  {{ droppingUuids.has(course.uuid) ? 'Dropping…' : 'Drop Course' }}
+                </button>
               </div>
             </div>
             <time class="enrolled-at">Enrolled {{ formatDate(course.createdAt) }}</time>
@@ -48,7 +56,6 @@
 
         <div v-else class="state empty">
           <p>You haven't enrolled in any courses yet.</p>
-          <button class="browse-btn" type="button" @click="onBrowseCatalog">Browse Catalog</button>
         </div>
       </template>
     </DashboardLayout>
@@ -67,6 +74,7 @@ const router = useRouter()
 const courses = ref<Course[]>([])
 const loading = ref(false)
 const error = ref('')
+const droppingUuids = ref<Set<string>>(new Set())
 
 const onBrowseCatalog = () => {
   router.push({ name: 'student-catalog' })
@@ -83,6 +91,21 @@ onMounted(async () => {
     loading.value = false
   }
 })
+
+async function onDrop(uuid: string) {
+  if (droppingUuids.value.has(uuid)) return
+  droppingUuids.value = new Set(droppingUuids.value).add(uuid)
+  try {
+    await enrollmentApi.drop(uuid)
+    courses.value = courses.value.filter(c => c.uuid !== uuid)
+  } catch {
+    error.value = 'Failed to drop course. Please try again.'
+  } finally {
+    const next = new Set(droppingUuids.value)
+    next.delete(uuid)
+    droppingUuids.value = next
+  }
+}
 
 const formatDate = (isoDate: string) => new Date(isoDate).toLocaleDateString()
 
@@ -122,15 +145,6 @@ const toCourseHref = (link: string) =>
   color: var(--color-text-secondary);
 }
 
-.browse-btn {
-  border: 0;
-  border-radius: 0.6rem;
-  padding: 0.55rem 0.95rem;
-  background: var(--color-brand-500);
-  color: #fff;
-  font-weight: 600;
-  cursor: pointer;
-}
 
 .course-list {
   margin-top: 1rem;
@@ -203,6 +217,13 @@ const toCourseHref = (link: string) =>
   border-color: #bae6fd;
   color: #075985;
 }
+
+.course-btn.drop {
+  background: #fee2e2;
+  border-color: #fecaca;
+  color: #991b1b;
+}
+.course-btn.drop:disabled { opacity: 0.6; cursor: not-allowed; }
 
 .enrolled-at {
   white-space: nowrap;

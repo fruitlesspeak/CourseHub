@@ -409,7 +409,7 @@ class CourseControllerTest {
             mockMvc.perform(get("/api/courses/{uuid}/content", COURSE_UUID)
                             .session(session))
                             .andExpect(status().isOk())
-                            .andExpect(jsonPath("$.material").value("Core Java concepts"));//TEMPORARY GETTING DESCRIPTION INSTEAD OF ACTUAL MATERIAL
+                            .andExpect(jsonPath("$.material").value("Week 4 slides"));
     }
 
     @Test

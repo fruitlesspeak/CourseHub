@@ -33,27 +33,46 @@
             <p>{{ course.description }}</p>
           </section>
 
-          <section v-if="course.material" class="detail-section">
-            <h3>Materials</h3>
-            <p class="material-content">{{ course.material }}</p>
-          </section>
-
-          <section v-if="course.link" class="detail-section">
-            <h3>Course Link</h3>
-            <a
-              :href="toCourseHref(course.link)"
-              target="_blank"
-              rel="noopener noreferrer"
-              class="course-link"
-            >
-              Open course link ↗
-            </a>
-          </section>
-
           <section v-if="course.dueDate" class="detail-section">
             <h3>Due Date</h3>
             <p>{{ formatDateTime(course.dueDate) }}</p>
           </section>
+
+          <!-- Enrolled-only content -->
+          <template v-if="enrolled">
+            <section v-if="course.material" class="detail-section">
+              <h3>Materials</h3>
+              <p class="material-content">{{ course.material }}</p>
+            </section>
+
+            <section v-if="course.link" class="detail-section">
+              <h3>Course Link</h3>
+              <a
+                :href="toCourseHref(course.link)"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="course-link"
+              >
+                Open course link ↗
+              </a>
+            </section>
+          </template>
+
+          <!-- Not enrolled gate -->
+          <div v-else class="enroll-gate">
+            <svg viewBox="0 0 24 24" fill="none" width="28" height="28" aria-hidden="true">
+              <rect x="3" y="11" width="18" height="11" rx="2" stroke="currentColor" stroke-width="1.6"/>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+            </svg>
+            <div>
+              <p class="gate-title">Enroll to access course materials</p>
+              <p class="gate-sub">Materials and course links are only available to enrolled students.</p>
+            </div>
+            <button class="enroll-btn" :disabled="enrolling" @click="handleEnroll">
+              <span v-if="enrolling" class="spinner" aria-hidden="true"></span>
+              {{ enrolling ? 'Enrolling…' : 'Enroll Now' }}
+            </button>
+          </div>
 
           <div class="detail-footer">
             <router-link :to="backRoute" class="back-link">
@@ -70,7 +89,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import DashboardLayout from '@/components/dashboard/DashboardLayout.vue'
-import { courseApi } from '@/api'
+import { courseApi, enrollmentApi } from '@/api'
 import type { Course } from '@/api'
 import { parseTags } from '@/stores/enrollmentStore'
 
@@ -80,6 +99,8 @@ const router = useRouter()
 const course = ref<Course | null>(null)
 const loading = ref(false)
 const error = ref('')
+const enrolled = ref(false)
+const enrolling = ref(false)
 
 const BANDS = [
   'linear-gradient(135deg,#1e3a8a,#3b82f6)',
@@ -108,14 +129,16 @@ onMounted(async () => {
   const uuid = route.params.uuid as string
   loading.value = true
   try {
-    const { data } = await courseApi.getOne(uuid)
-    course.value = data
+    const [courseRes, enrolledCourses] = await Promise.all([
+      courseApi.getOne(uuid),
+      enrollmentApi.getMyCourses(),
+    ])
+    course.value = courseRes.data
+    enrolled.value = enrolledCourses.data.some((c) => c.uuid === uuid)
   } catch (err: any) {
     const status = err?.response?.status
     if (status === 404) {
       error.value = 'Course not found.'
-    } else if (status === 403) {
-      error.value = 'You must be enrolled to access this course.'
     } else {
       error.value = 'Failed to load course. Please try again.'
     }
@@ -123,6 +146,24 @@ onMounted(async () => {
     loading.value = false
   }
 })
+
+async function handleEnroll() {
+  if (!course.value) return
+  enrolling.value = true
+  try {
+    await enrollmentApi.enroll(course.value.uuid)
+    enrolled.value = true
+  } catch (err: any) {
+    const status = err?.response?.status
+    if (status === 409) {
+      enrolled.value = true
+    } else {
+      error.value = 'Enrollment failed. Please try again.'
+    }
+  } finally {
+    enrolling.value = false
+  }
+}
 
 const formatDateTime = (isoDate: string) => new Date(isoDate).toLocaleString()
 
@@ -261,9 +302,59 @@ const toCourseHref = (link: string) =>
   font-size: 0.9rem;
 }
 
-.course-link:hover {
-  text-decoration: underline;
+.course-link:hover { text-decoration: underline; }
+
+/* ── Enroll gate ── */
+.enroll-gate {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.1rem;
+  border: 1px dashed var(--color-border);
+  border-radius: 0.75rem;
+  background: var(--color-bg-soft);
+  color: var(--color-text-secondary);
 }
+
+.gate-title {
+  margin: 0 0 0.15rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  font-size: 0.9rem;
+}
+
+.gate-sub {
+  margin: 0;
+  font-size: 0.82rem;
+}
+
+.enroll-btn {
+  margin-left: auto;
+  flex-shrink: 0;
+  border: 0;
+  border-radius: 0.6rem;
+  padding: 0.5rem 1rem;
+  background: var(--color-brand-500);
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.88rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.enroll-btn:hover:not(:disabled) { background: var(--color-brand-600); }
+.enroll-btn:disabled { opacity: 0.65; cursor: not-allowed; }
+
+.spinner {
+  width: 0.75rem;
+  height: 0.75rem;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
 
 .detail-footer {
   padding-top: 0.75rem;
@@ -276,7 +367,5 @@ const toCourseHref = (link: string) =>
   font-size: 0.88rem;
 }
 
-.back-link:hover {
-  color: var(--color-text-primary);
-}
+.back-link:hover { color: var(--color-text-primary); }
 </style>

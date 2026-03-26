@@ -96,7 +96,7 @@ public class CourseController {
         if (!enrolled) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You must be enrolled to access course materials.");
         }
-        Map<String, String> response = Map.of("material", course.getDescription());//TEMPORARY
+        Map<String, String> response = Map.of("material", course.getMaterial() != null ? course.getMaterial() : "");
         return ResponseEntity.ok(response);
     }
 
