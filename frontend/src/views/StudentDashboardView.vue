@@ -81,9 +81,6 @@
                   <h3>{{ course.title }}</h3>
                   <p class="item-code">{{ course.code }}</p>
                   <p v-if="course.description" class="item-desc">{{ course.description }}</p>
-                  <p v-if="course.dueDate" class="item-meta">
-                    Due: {{ formatDateTime(course.dueDate) }}
-                  </p>
                 </div>
               </button>
             </div>
@@ -127,20 +124,6 @@ const selectedCourse = computed(() =>
   courseStore.courses.find((course) => course.id === selectedCourseId.value) ?? null,
 )
 
-const dueDateItems = computed<DashboardItem[]>(() => {
-  return courseStore.courses
-    .filter((course) => Boolean(course.dueDate))
-    .map((course) => ({
-      id: `course-${course.id}`,
-      title: `${course.title} Due`,
-      courseId: course.id,
-      courseCode: course.code,
-      date: course.dueDate as string,
-      description: course.description,
-      typeLabel: 'Course Due Date',
-    }))
-})
-
 const importantDateItems = computed<DashboardItem[]>(() => {
   return importantDateStore.importantDates.map((importantDate) => {
     const course = courseStore.courses.find((item) => item.id === importantDate.courseId)
@@ -152,7 +135,7 @@ const upcomingItems = computed<DashboardItem[]>(() => {
   const now = Date.now()
   const selectedId = selectedCourseId.value
 
-  return [...dueDateItems.value, ...importantDateItems.value]
+  return importantDateItems.value
     .filter((item) => selectedId === null || item.courseId === selectedId)
     .filter((item) => new Date(item.date).getTime() >= now)
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
