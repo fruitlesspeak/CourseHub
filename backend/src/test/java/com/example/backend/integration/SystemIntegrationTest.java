@@ -12,6 +12,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.example.backend.entity.User;
 import com.example.backend.repository.CourseRepository;
+import com.example.backend.repository.EnrollmentRepository;
 import com.example.backend.repository.UserRepository;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -19,8 +20,10 @@ import com.jayway.jsonpath.JsonPath;
 import jakarta.transaction.Transactional;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
@@ -33,14 +36,18 @@ import java.util.UUID;
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 @Transactional
-
 public class SystemIntegrationTest {
     @Autowired
     private MockMvc mockMvc;
+
     @Autowired
     private UserRepository userRepository;
+    
     @Autowired
     private CourseRepository courseRepository;
+    
+    @Autowired
+    private EnrollmentRepository enrollmentRepository;
 
     /*
      * Helper: Login and obtain session

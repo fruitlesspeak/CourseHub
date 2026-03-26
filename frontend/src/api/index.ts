@@ -100,6 +100,18 @@ export interface UpdateImportantDatePayload {
   dueAt?:       string
 }
 
+export interface Enrollment {
+  id:         number
+  userId:     number
+  courseId:   number
+  isActive:   boolean
+  createdAt:  string
+}
+
+export interface EnrollmentWithCourse extends Enrollment {
+  course: Course
+}
+
 export interface ApiError {
   error?: string
   [field: string]: string | undefined
@@ -141,6 +153,19 @@ export const courseApi = {
 
   remove:  (uuid: string) =>
     api.delete<void>(`/courses/${uuid}`),
+}
+
+// ── Enrollments ───────────────────────────────────────────────────────────────
+
+export const enrollmentApi = {
+  enroll: (courseUuid: string) =>
+    api.post<Enrollment>(`/courses/${courseUuid}/enroll`),
+
+  getMyCourses: () =>
+    api.get<Course[]>('/courses/my-courses'),
+
+  drop: (courseUuid: string) =>
+    api.delete<void>(`/courses/${courseUuid}/enroll`),
 }
 
 // -- Important Dates ----------------------------------------------------------

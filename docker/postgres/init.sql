@@ -112,6 +112,7 @@ CREATE TABLE enrollments (
   id         SERIAL PRIMARY KEY,
   user_id    INTEGER NOT NULL,
   course_id  INTEGER NOT NULL,
+  is_active BOOLEAN DEFAULT TRUE NOT NULL,
   created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
 
   CONSTRAINT fk_enrollments_user
