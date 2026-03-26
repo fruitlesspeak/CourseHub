@@ -82,7 +82,7 @@ class CourseControllerTest {
 
     @BeforeEach
     void setUp() {
-        CourseController controller = new CourseController(courseService, new SessionAuthService());
+        CourseController controller = new CourseController(courseService, new SessionAuthService(), enrollmentService);
         mockMvc = MockMvcBuilders.standaloneSetup(controller)
                 .setControllerAdvice(new GlobalExceptionHandler())
                 .build();
