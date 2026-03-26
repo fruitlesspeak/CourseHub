@@ -98,7 +98,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import type { Course, ImportantDate } from '@/api'
+import { enrollmentApi, type Course, type ImportantDate } from '@/api'
 import DashboardLayout from '@/components/dashboard/DashboardLayout.vue'
 import { useCourseStore } from '@/stores/courseStore'
 import { useImportantDateStore } from '@/stores/importantDateStore'
@@ -143,12 +143,23 @@ const upcomingItems = computed<DashboardItem[]>(() => {
 })
 
 const onBrowseCourses = async () => {
-  await router.push('/')
+  await router.push({ name: 'student-catalog' })
 }
 
 onMounted(async () => {
-  await courseStore.fetchAll()
-  await importantDateStore.fetchByCourses(courseStore.courses.map((course) => course.id))
+  courseStore.loading = true
+  courseStore.error = null
+  try {
+    const { data } = await enrollmentApi.getMyCourses()
+    courseStore.courses = data
+    await importantDateStore.fetchByCourses(data.map((course) => course.id))
+  } catch (e: unknown) {
+    courseStore.courses = []
+    importantDateStore.importantDates = []
+    courseStore.error = extractError(e) ?? 'Failed to load courses.'
+  } finally {
+    courseStore.loading = false
+  }
 })
 
 function toggleCourseSelection(courseId: number): void {
@@ -169,6 +180,14 @@ function toImportantDateItem(importantDate: ImportantDate, course?: Course): Das
 
 function formatDateTime(isoDate: string): string {
   return new Date(isoDate).toLocaleString()
+}
+
+function extractError(e: unknown): string | null {
+  if (e && typeof e === 'object' && 'response' in e) {
+    const response = (e as { response?: { data?: { error?: string; message?: string } } }).response
+    return response?.data?.error ?? response?.data?.message ?? null
+  }
+  return null
 }
 </script>
 
