@@ -9,6 +9,7 @@ import com.example.backend.repository.CourseRepository;
 import com.example.backend.repository.UserRepository;
 import com.example.backend.service.CourseService;
 import com.example.backend.repository.EnrollmentRepository;
+import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -17,6 +18,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.List;
@@ -57,7 +59,7 @@ class CourseServiceTest {
     }
 
     @Test
-    void createWithHttpsLinkSavesLinkAsIs() {
+    void mutation_createWithHttpsLinkSavesLinkAsIs() {
         stubProfessorAndSave(OWNER_PROFESSOR_ID);
 
         CourseDto.CreateRequest request = new CourseDto.CreateRequest();
@@ -86,7 +88,7 @@ class CourseServiceTest {
     }
 
     @Test
-    void createWithWwwLinkNormalizesToHttps() {
+    void mutation_createWithWwwLinkNormalizesToHttps() {
         stubProfessorAndSave(OWNER_PROFESSOR_ID);
 
         CourseDto.CreateRequest request = new CourseDto.CreateRequest();
@@ -103,7 +105,7 @@ class CourseServiceTest {
     }
 
     @Test
-    void createWithHttpLinkThrowsValidationError() {
+    void mutation_createWithHttpLinkThrowsValidationError() {
         when(userRepository.findById(OWNER_PROFESSOR_ID)).thenReturn(Optional.of(professorUser(OWNER_PROFESSOR_ID)));
         CourseDto.CreateRequest request = new CourseDto.CreateRequest();
         request.setTitle("Intro to Testing");
@@ -120,7 +122,7 @@ class CourseServiceTest {
     }
 
     @Test
-    void createWithMalformedLinkThrowsValidationError() {
+    void mutation_createWithMalformedLinkThrowsValidationError() {
         when(userRepository.findById(OWNER_PROFESSOR_ID)).thenReturn(Optional.of(professorUser(OWNER_PROFESSOR_ID)));
         CourseDto.CreateRequest request = new CourseDto.CreateRequest();
         request.setTitle("Intro to Testing");
@@ -137,7 +139,7 @@ class CourseServiceTest {
     }
 
     @Test
-    void createWithBlankLinkStoresNull() {
+    void mutation_createWithBlankLinkStoresNull() {
         stubProfessorAndSave(OWNER_PROFESSOR_ID);
 
         CourseDto.CreateRequest request = new CourseDto.CreateRequest();
@@ -154,7 +156,7 @@ class CourseServiceTest {
     }
 
     @Test
-    void createWithNonProfessorThrowsError() {
+    void mutation_createWithMissingProfessorThrowsError() {
         when(userRepository.findById(999)).thenReturn(Optional.empty());
 
         CourseDto.CreateRequest request = new CourseDto.CreateRequest();
@@ -172,7 +174,140 @@ class CourseServiceTest {
     }
 
     @Test
-    void updateCourseAsOwnerUpdatesEditableFieldsAndReturnsResponse() {
+    void mutation_createWithExistingNonProfessorUserThrowsError() {
+        User student = new User();
+        student.setId(OWNER_PROFESSOR_ID);
+        student.setProfessor(false);
+        when(userRepository.findById(OWNER_PROFESSOR_ID)).thenReturn(Optional.of(student));
+
+        CourseDto.CreateRequest request = new CourseDto.CreateRequest();
+        request.setTitle("Intro to Testing");
+        request.setCode("COMP200");
+
+        IllegalArgumentException ex = assertThrows(
+                IllegalArgumentException.class,
+                () -> courseService.create(request, OWNER_PROFESSOR_ID)
+        );
+
+        assertEquals("No professor found with id: 7", ex.getMessage());
+        verify(courseRepository, never()).save(any(Course.class));
+    }
+
+    @Test
+    void mutation_createWithBlankOptionalTextFieldsStoresNulls() {
+        stubProfessorAndSave(OWNER_PROFESSOR_ID);
+
+        CourseDto.CreateRequest request = new CourseDto.CreateRequest();
+        request.setTitle("Intro to Testing");
+        request.setCode("COMP200");
+        request.setDescription("   ");
+        request.setTags("   ");
+        request.setMaterial("   ");
+
+        CourseDto.Response response = courseService.create(request, OWNER_PROFESSOR_ID);
+
+        ArgumentCaptor<Course> captor = ArgumentCaptor.forClass(Course.class);
+        verify(courseRepository).save(captor.capture());
+        Course saved = captor.getValue();
+
+        assertNull(saved.getDescription());
+        assertNull(saved.getTags());
+        assertNull(saved.getMaterial());
+        assertNull(response.getDescription());
+        assertNull(response.getTags());
+        assertNull(response.getMaterial());
+    }
+
+    @Test
+    void mutation_createWithNullOptionalFieldsStoresNulls() {
+        stubProfessorAndSave(OWNER_PROFESSOR_ID);
+
+        CourseDto.CreateRequest request = new CourseDto.CreateRequest();
+        request.setTitle("Intro to Testing");
+        request.setCode("COMP200");
+        request.setDescription(null);
+        request.setTags(null);
+        request.setMaterial(null);
+        request.setLink(null);
+
+        CourseDto.Response response = courseService.create(request, OWNER_PROFESSOR_ID);
+
+        ArgumentCaptor<Course> captor = ArgumentCaptor.forClass(Course.class);
+        verify(courseRepository).save(captor.capture());
+        Course saved = captor.getValue();
+
+        assertNull(saved.getDescription());
+        assertNull(saved.getTags());
+        assertNull(saved.getMaterial());
+        assertNull(saved.getLink());
+        assertNull(response.getDescription());
+        assertNull(response.getTags());
+        assertNull(response.getMaterial());
+        assertNull(response.getLink());
+    }
+
+    @Test
+    void mutation_findAllReturnsMappedCourses() {
+        when(courseRepository.findAll()).thenReturn(List.of(existingCourse(OWNER_PROFESSOR_ID)));
+
+        List<CourseDto.Response> response = courseService.findAll();
+
+        assertEquals(1, response.size());
+        assertEquals(COURSE_UUID, response.get(0).getUuid());
+        assertEquals("Databases", response.get(0).getTitle());
+        assertEquals("COMP4350", response.get(0).getCode());
+        assertEquals(OWNER_PROFESSOR_ID, response.get(0).getProfessorId());
+    }
+
+    @Test
+    void mutation_findByUuidReturnsMappedCourse() {
+        when(courseRepository.findByUuid(COURSE_UUID)).thenReturn(Optional.of(existingCourse(OWNER_PROFESSOR_ID)));
+
+        CourseDto.Response response = courseService.findByUuid(COURSE_UUID);
+
+        assertEquals(COURSE_UUID, response.getUuid());
+        assertEquals("Databases", response.getTitle());
+        assertEquals("COMP4350", response.getCode());
+        assertEquals("https://example.com/old-course", response.getLink());
+        assertEquals(OWNER_PROFESSOR_ID, response.getProfessorId());
+    }
+
+    @Test
+    void mutation_findByUuidWhenCourseMissingThrowsNotFound() {
+        when(courseRepository.findByUuid(COURSE_UUID)).thenReturn(Optional.empty());
+
+        EntityNotFoundException ex = assertThrows(
+                EntityNotFoundException.class,
+                () -> courseService.findByUuid(COURSE_UUID)
+        );
+
+        assertEquals("Course not found: " + COURSE_UUID, ex.getMessage());
+    }
+
+    @Test
+    void mutation_findByProfessorReturnsMappedCourses() {
+        when(courseRepository.findByProfessorId(OWNER_PROFESSOR_ID)).thenReturn(List.of(existingCourse(OWNER_PROFESSOR_ID)));
+
+        List<CourseDto.Response> response = courseService.findByProfessor(OWNER_PROFESSOR_ID);
+
+        assertEquals(1, response.size());
+        assertEquals(COURSE_UUID, response.get(0).getUuid());
+        assertEquals(OWNER_PROFESSOR_ID, response.get(0).getProfessorId());
+    }
+
+    @Test
+    void mutation_searchReturnsMappedCourses() {
+        when(courseRepository.findByTitleContainingIgnoreCase("Data")).thenReturn(List.of(existingCourse(OWNER_PROFESSOR_ID)));
+
+        List<CourseDto.Response> response = courseService.search("Data");
+
+        assertEquals(1, response.size());
+        assertEquals(COURSE_UUID, response.get(0).getUuid());
+        assertEquals("Databases", response.get(0).getTitle());
+    }
+
+    @Test
+    void mutation_updateCourseAsOwnerUpdatesEditableFieldsAndReturnsResponse() {
         Course existing = existingCourse(OWNER_PROFESSOR_ID);
         when(courseRepository.findByUuid(COURSE_UUID)).thenReturn(Optional.of(existing));
         when(courseRepository.save(any(Course.class))).thenAnswer(invocation -> invocation.getArgument(0, Course.class));
@@ -206,7 +341,57 @@ class CourseServiceTest {
     }
 
     @Test
-    void updateCourseAsNonOwnerThrowsForbiddenAndDoesNotSave() {
+    void mutation_updateCourseAsOwnerUpdatesTitleAndCode() {
+        Course existing = existingCourse(OWNER_PROFESSOR_ID);
+        when(courseRepository.findByUuid(COURSE_UUID)).thenReturn(Optional.of(existing));
+        when(courseRepository.save(any(Course.class))).thenAnswer(invocation -> invocation.getArgument(0, Course.class));
+
+        CourseDto.UpdateRequest request = new CourseDto.UpdateRequest();
+        request.setTitle("Advanced Databases");
+        request.setCode("COMP4950");
+
+        CourseDto.Response response = courseService.update(COURSE_UUID, request, OWNER_PROFESSOR_ID);
+
+        ArgumentCaptor<Course> captor = ArgumentCaptor.forClass(Course.class);
+        verify(courseRepository).save(captor.capture());
+        Course saved = captor.getValue();
+
+        assertEquals("Advanced Databases", saved.getTitle());
+        assertEquals("COMP4950", saved.getCode());
+        assertEquals("Advanced Databases", response.getTitle());
+        assertEquals("COMP4950", response.getCode());
+    }
+
+    @Test
+    void mutation_updateCourseAsOwnerBlankOptionalFieldsBecomeNull() {
+        Course existing = existingCourse(OWNER_PROFESSOR_ID);
+        when(courseRepository.findByUuid(COURSE_UUID)).thenReturn(Optional.of(existing));
+        when(courseRepository.save(any(Course.class))).thenAnswer(invocation -> invocation.getArgument(0, Course.class));
+
+        CourseDto.UpdateRequest request = new CourseDto.UpdateRequest();
+        request.setDescription("   ");
+        request.setTags("   ");
+        request.setMaterial("   ");
+        request.setLink("   ");
+
+        CourseDto.Response response = courseService.update(COURSE_UUID, request, OWNER_PROFESSOR_ID);
+
+        ArgumentCaptor<Course> captor = ArgumentCaptor.forClass(Course.class);
+        verify(courseRepository).save(captor.capture());
+        Course saved = captor.getValue();
+
+        assertNull(saved.getDescription());
+        assertNull(saved.getTags());
+        assertNull(saved.getMaterial());
+        assertNull(saved.getLink());
+        assertNull(response.getDescription());
+        assertNull(response.getTags());
+        assertNull(response.getMaterial());
+        assertNull(response.getLink());
+    }
+
+    @Test
+    void mutation_updateCourseAsNonOwnerThrowsForbiddenAndDoesNotSave() {
         when(courseRepository.findByUuid(COURSE_UUID)).thenReturn(Optional.of(existingCourse(OWNER_PROFESSOR_ID)));
 
         CourseAccessDeniedException ex = assertThrows(
@@ -219,7 +404,7 @@ class CourseServiceTest {
     }
 
     @Test
-    void deleteCourseAsOwnerDeletesCourse() {
+    void mutation_deleteCourseAsOwnerDeletesCourse() {
         Course existing = existingCourse(OWNER_PROFESSOR_ID);
         when(courseRepository.findByUuid(COURSE_UUID)).thenReturn(Optional.of(existing));
 
@@ -229,7 +414,7 @@ class CourseServiceTest {
     }
 
     @Test
-    void deleteCourseAsNonOwnerThrowsForbiddenAndDoesNotDelete() {
+    void mutation_deleteCourseAsNonOwnerThrowsForbiddenAndDoesNotDelete() {
         when(courseRepository.findByUuid(COURSE_UUID)).thenReturn(Optional.of(existingCourse(OWNER_PROFESSOR_ID)));
 
         CourseAccessDeniedException ex = assertThrows(
