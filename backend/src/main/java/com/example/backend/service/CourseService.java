@@ -1,13 +1,17 @@
 package com.example.backend.service;
 
 import com.example.backend.dto.CourseDto;
+import com.example.backend.dto.UserDto;
 import com.example.backend.entity.Course;
+import com.example.backend.entity.Enrollment;
 import com.example.backend.exception.CourseAccessDeniedException;
 import com.example.backend.repository.CourseRepository;
+import com.example.backend.repository.EnrollmentRepository;
 import com.example.backend.repository.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
 
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -20,13 +24,15 @@ public class CourseService {
 
     private final CourseRepository courseRepository;
     private final UserRepository   userRepository;
+    private final EnrollmentRepository enrollmentRepository;
 
-    public CourseService(CourseRepository courseRepository, UserRepository userRepository) {
+    public CourseService(CourseRepository courseRepository, UserRepository userRepository, EnrollmentRepository enrollmentRepository) {
         this.courseRepository = courseRepository;
         this.userRepository   = userRepository;
+        this.enrollmentRepository = enrollmentRepository;
     }
 
-    // ── Create ────────────────────────────────────────────────────────────────
+    // ── Create ─   ───────────────────────────────────────────────────────────────
 
     public CourseDto.Response create(CourseDto.CreateRequest req, Integer professorId) {
         ensureProfessorExists(professorId);
@@ -72,6 +78,18 @@ public class CourseService {
     @Transactional(readOnly = true)
     public List<CourseDto.Response> findByTag(String tag) {
         return courseRepository.findByTagsContainingIgnoreCase(tag)
+                .stream().map(this::toResponse).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<CourseDto.Response> findMyCourses(Integer studentId) {
+        List<Enrollment> enrollments = enrollmentRepository.findByUserIdAndIsActiveTrue(studentId);
+        List<Integer> courseIds = enrollments.stream().map(Enrollment::getCourseId).toList();
+        if (courseIds.isEmpty()) {
+            return List.of();
+        }
+
+        return courseRepository.findByIdIn(courseIds)
                 .stream().map(this::toResponse).toList();
     }
 
@@ -122,6 +140,16 @@ public class CourseService {
         }
     }
 
+    public void  ensureStudentEnrolled(Integer studentId, Integer courseId) {
+        boolean enrolled = enrollmentRepository
+                .existsByUserIdAndCourseIdAndIsActiveTrue(studentId, courseId);
+        if (!enrolled) {
+            throw new CourseAccessDeniedException("Student is not enrolled in this course");
+        }
+    }
+
+
+
     private static String normalizeOptionalText(String raw) {
         if (raw == null) {
             return null;
@@ -158,7 +186,31 @@ public class CourseService {
         return normalized;
     }
 
+    private List<UserDto.Response> getStudentsForCourse(Integer courseId) {
+        List<Enrollment> enrollments = enrollmentRepository.findByCourseIdAndIsActiveTrue(courseId);
+
+        return enrollments.stream()
+                .map(e -> userRepository.findById(e.getUserId())
+                        .orElseThrow(() -> new EntityNotFoundException("User not found")))
+                .map(u -> UserDto.Response.builder()
+                        .id(u.getId())
+                        .uuid(u.getUuid())
+                        .email(u.getEmail())
+                        .firstName(u.getFirstName())
+                        .lastName(u.getLastName())
+                        .isProfessor(u.isProfessor())
+                        .professorId(u.getProfessorId())
+                        .studentId(u.getStudentId())
+                        .createdAt(u.getCreatedAt())
+                        .updatedAt(u.getUpdatedAt())
+                        .build())
+                .toList();
+    }
+
+
+
     private CourseDto.Response toResponse(Course c) {
+        List<UserDto.Response> students = getStudentsForCourse(c.getId());
         return CourseDto.Response.builder()
                 .id(c.getId())
                 .uuid(c.getUuid())
@@ -172,6 +224,8 @@ public class CourseService {
                 .professorId(c.getProfessorId())
                 .createdAt(c.getCreatedAt())
                 .updatedAt(c.getUpdatedAt())
+                .students(students)
+                .enrolledCount(students.size())
                 .build();
     }
 }

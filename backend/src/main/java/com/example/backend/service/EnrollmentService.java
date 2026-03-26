@@ -3,6 +3,7 @@ package com.example.backend.service;
 import org.springframework.stereotype.Service;
 
 import com.example.backend.entity.Enrollment;
+import com.example.backend.exception.CourseAccessDeniedException;
 import com.example.backend.repository.CourseRepository;
 import com.example.backend.repository.UserRepository;
 import com.example.backend.repository.EnrollmentRepository;
@@ -25,9 +26,11 @@ public class EnrollmentService {
     }
 
     @Transactional
-    public void enrollOrReactivate(Integer userId, Integer courseId) {
+    public void enrollOrReactivate(Integer studentId, Integer courseId) {
+        ensureStudentExists(studentId);
+
         Optional<Enrollment> existing = enrollmentRepository
-                .findByUserIdAndCourseId(userId, courseId);
+                .findByUserIdAndCourseId(studentId, courseId);
 
         if (existing.isPresent()) {
             Enrollment e = existing.get();
@@ -44,7 +47,7 @@ public class EnrollmentService {
 
         // Create new enrollment
         Enrollment e = new Enrollment();
-        e.setUserId(userId);
+        e.setUserId(studentId);
         e.setCourseId(courseId);
         e.setIsActive(true);
 
@@ -52,9 +55,11 @@ public class EnrollmentService {
     }
 
     @Transactional
-    public void deactivate(Integer userId, Integer courseId) {
+    public void deactivate(Integer studentId, Integer courseId) {
+        ensureStudentExists(studentId);
+
         Enrollment e = enrollmentRepository
-                .findByUserIdAndCourseId(userId, courseId)
+                .findByUserIdAndCourseId(studentId, courseId)
                 .orElseThrow(() -> new EntityNotFoundException("Enrollment not found"));
 
         if (!Boolean.TRUE.equals(e.getIsActive())) {
@@ -65,26 +70,27 @@ public class EnrollmentService {
         enrollmentRepository.save(e);
     }
 
+    // ── Read ─────────────────────────────────────────────────────────────────
+
     @Transactional(readOnly = true)
-    public List<Enrollment> getActiveEnrollmentsByUser(Integer userId) {
+    public List<Enrollment> findByUser(Integer userId) {
         return enrollmentRepository.findByUserIdAndIsActiveTrue(userId);
     }
 
     @Transactional(readOnly = true)
-    public List<Enrollment> getActiveEnrollmentsByCourse(Integer courseId) {
+    public List<Enrollment> findByCourse(Integer courseId) {
         return enrollmentRepository.findByCourseIdAndIsActiveTrue(courseId);
     }
 
 
-    private void ensureUserExists(Integer userId) {
-        if (!userRepository.existsById(userId)) {
-            throw new EntityNotFoundException("User not found");
-        }
-    }
+    // ── Helpers ───────────────────────────────────────────────────────────────
 
-    private void ensureCourseExists(Integer courseId) {
-        if (!courseRepository.existsById(courseId)) {
-            throw new EntityNotFoundException("Course not found");
+    private void ensureStudentExists(Integer studentId) {
+        boolean valid = userRepository.findById(studentId)
+                .map(u -> !u.isProfessor())
+                .orElse(false);
+        if (!valid) {
+            throw new IllegalArgumentException("No student found with id: " + studentId);
         }
     }
 }

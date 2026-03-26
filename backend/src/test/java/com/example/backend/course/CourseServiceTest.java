@@ -2,11 +2,13 @@ package com.example.backend.course;
 
 import com.example.backend.dto.CourseDto;
 import com.example.backend.entity.Course;
+import com.example.backend.entity.Enrollment;
 import com.example.backend.entity.User;
 import com.example.backend.exception.CourseAccessDeniedException;
 import com.example.backend.repository.CourseRepository;
 import com.example.backend.repository.UserRepository;
 import com.example.backend.service.CourseService;
+import com.example.backend.repository.EnrollmentRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -17,10 +19,14 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.time.OffsetDateTime;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -32,6 +38,7 @@ class CourseServiceTest {
     private static final UUID COURSE_UUID = UUID.fromString("11111111-1111-1111-1111-111111111111");
     private static final int OWNER_PROFESSOR_ID = 7;
     private static final int OTHER_PROFESSOR_ID = 9;
+    private static final int STUDENT_ID = 1;
 
     @Mock
     private CourseRepository courseRepository;
@@ -39,11 +46,14 @@ class CourseServiceTest {
     @Mock
     private UserRepository userRepository;
 
+    @Mock
+    private EnrollmentRepository enrollmentRepository;
+
     private CourseService courseService;
 
     @BeforeEach
     void setUp() {
-        courseService = new CourseService(courseRepository, userRepository);
+        courseService = new CourseService(courseRepository, userRepository, enrollmentRepository);
     }
 
     @Test
@@ -264,4 +274,244 @@ class CourseServiceTest {
         user.setProfessor(true);
         return user;
     }
+
+
+    // NEW ADDED TESTS FOR ENROLLMENT
+    @Test
+    void findByTagReturnsMatchingCourses() {
+        Course course = existingCourse(OWNER_PROFESSOR_ID);
+        course.setTags("java,spring");
+
+        when(courseRepository.findByTagsContainingIgnoreCase("java"))
+                .thenReturn(List.of(course));
+
+        List<CourseDto.Response> result = courseService.findByTag("java");
+
+        assertEquals(1, result.size());
+        assertEquals("java,spring", result.get(0).getTags());
+    }
+
+
+    @Test
+    void findMyCoursesReturnsActiveEnrolledCourses() {
+        int studentId = 5;
+
+        Enrollment enrollment = new Enrollment();
+        enrollment.setUserId(studentId);
+        enrollment.setCourseId(1);
+        enrollment.setIsActive(true);
+
+        Course course = existingCourse(OWNER_PROFESSOR_ID);
+        course.setId(1);
+
+        when(enrollmentRepository.findByUserIdAndIsActiveTrue(studentId))
+                .thenReturn(List.of(enrollment));
+
+        when(courseRepository.findByIdIn(List.of(1)))
+                .thenReturn(List.of(course));
+
+        List<CourseDto.Response> result = courseService.findMyCourses(studentId);
+
+        assertEquals(1, result.size());
+        assertEquals(course.getUuid(), result.get(0).getUuid());
+    }
+
+    @Test
+    void findMyCoursesWithNoEnrollmentsReturnsEmptyList() {
+        int studentId = 5;
+
+        when(enrollmentRepository.findByUserIdAndIsActiveTrue(studentId))
+                .thenReturn(List.of());
+
+
+        List<CourseDto.Response> result = courseService.findMyCourses(studentId);
+
+        assertTrue(result.isEmpty());
+    }
+
+    @Test
+    void findMyCoursesWithMissingCoursesStillReturnsEmptySafely() {
+        int studentId = 5;
+
+        Enrollment enrollment = new Enrollment();
+        enrollment.setUserId(studentId);
+        enrollment.setCourseId(999); // doesn't exist
+
+        when(enrollmentRepository.findByUserIdAndIsActiveTrue(studentId))
+                .thenReturn(List.of(enrollment));
+
+        when(courseRepository.findByIdIn(List.of(999)))
+                .thenReturn(List.of());
+
+        List<CourseDto.Response> result = courseService.findMyCourses(studentId);
+
+        assertTrue(result.isEmpty());
+    }
+
+    @Test
+    void returnStudentsInCourseResponse() {
+        UUID uuid = UUID.randomUUID();
+
+        Course course = new Course();
+        course.setId(1);
+        course.setUuid(uuid);
+
+        Enrollment enrollment = new Enrollment();
+        enrollment.setUserId(10);
+        enrollment.setCourseId(1);
+        enrollment.setIsActive(true);
+
+        User user = new User();
+        user.setId(10);
+        user.setEmail("test@test.com");
+        user.setFirstName("John");
+        user.setLastName("Doe");
+
+        when(courseRepository.findByUuid(uuid))
+                .thenReturn(Optional.of(course));
+
+        when(enrollmentRepository.findByCourseIdAndIsActiveTrue(1))
+                .thenReturn(List.of(enrollment));
+
+        when(userRepository.findById(10))
+                .thenReturn(Optional.of(user));
+
+        CourseDto.Response response = courseService.findByUuid(uuid);
+
+        assertEquals(1, response.getStudents().size());
+        assertEquals(1, response.getEnrolledCount());
+        assertEquals("John", response.getStudents().get(0).getFirstName());
+    }
+
+     @Test
+    void enrollShouldBeReflectedInCourseStudents() {
+        UUID uuid = COURSE_UUID;
+
+        // Arrange course
+        Course course = new Course();
+        course.setId(1);
+        course.setUuid(uuid);
+
+        // Arrange user
+        User user = new User();
+        user.setId(STUDENT_ID);
+        user.setFirstName("John");
+        user.setLastName("Doe");
+        user.setEmail("test@test.com");
+
+        // Arrange enrollment (ACTIVE)
+        Enrollment enrollment = new Enrollment();
+        enrollment.setUserId(STUDENT_ID);
+        enrollment.setCourseId(1);
+        enrollment.setIsActive(true);
+
+        // Mock: course lookup
+        when(courseRepository.findByUuid(uuid))
+                .thenReturn(Optional.of(course));
+
+        // Mock: enrollment lookup (this is what makes the student appear)
+        when(enrollmentRepository.findByCourseIdAndIsActiveTrue(1))
+                .thenReturn(List.of(enrollment));
+
+        // Mock: user lookup
+        when(userRepository.findById(STUDENT_ID))
+                .thenReturn(Optional.of(user));
+
+        // Act
+        CourseDto.Response response = courseService.findByUuid(uuid);
+
+        // Assert
+        assertNotNull(response.getStudents());
+        assertEquals(1, response.getStudents().size());
+        assertEquals(STUDENT_ID, response.getStudents().get(0).getId());
+        assertEquals(1, response.getEnrolledCount());
+    }
+
+    @Test
+    void courseWithNoEnrollmentsReturnsEmptyStudentsList() {
+        UUID uuid = COURSE_UUID;
+
+        Course course = new Course();
+        course.setId(1);
+        course.setUuid(uuid);
+
+        when(courseRepository.findByUuid(uuid))
+                .thenReturn(Optional.of(course));
+
+        when(enrollmentRepository.findByCourseIdAndIsActiveTrue(1))
+                .thenReturn(List.of());
+
+        CourseDto.Response response = courseService.findByUuid(uuid);
+
+        assertNotNull(response.getStudents());
+        assertTrue(response.getStudents().isEmpty());
+        assertEquals(0, response.getEnrolledCount());
+    }
+
+    @Test
+    void inactiveEnrollmentShouldNotAppearInCourse() {
+        UUID uuid = COURSE_UUID;
+
+        Course course = new Course();
+        course.setId(1);
+        course.setUuid(uuid);
+
+        Enrollment enrollment = new Enrollment();
+        enrollment.setUserId(STUDENT_ID);
+        enrollment.setCourseId(1);
+        enrollment.setIsActive(false); // ❗ inactive
+
+        when(courseRepository.findByUuid(uuid))
+                .thenReturn(Optional.of(course));
+
+        when(enrollmentRepository.findByCourseIdAndIsActiveTrue(1))
+                .thenReturn(List.of()); // inactive should NOT appear
+
+        CourseDto.Response response = courseService.findByUuid(uuid);
+
+        assertTrue(response.getStudents().isEmpty());
+        assertEquals(0, response.getEnrolledCount());
+    }
+
+    @Test
+    void multipleStudentsShouldBeReflectedInCourse() {
+        UUID uuid = COURSE_UUID;
+
+        Course course = new Course();
+        course.setId(1);
+        course.setUuid(uuid);
+
+        Enrollment e1 = new Enrollment();
+        e1.setUserId(1);
+        e1.setCourseId(1);
+        e1.setIsActive(true);
+
+        Enrollment e2 = new Enrollment();
+        e2.setUserId(2);
+        e2.setCourseId(1);
+        e2.setIsActive(true);
+
+        User u1 = new User();
+        u1.setId(1);
+        u1.setFirstName("A");
+
+        User u2 = new User();
+        u2.setId(2);
+        u2.setFirstName("B");
+
+        when(courseRepository.findByUuid(uuid))
+                .thenReturn(Optional.of(course));
+
+        when(enrollmentRepository.findByCourseIdAndIsActiveTrue(1))
+                .thenReturn(List.of(e1, e2));
+
+        when(userRepository.findById(1)).thenReturn(Optional.of(u1));
+        when(userRepository.findById(2)).thenReturn(Optional.of(u2));
+
+        CourseDto.Response response = courseService.findByUuid(uuid);
+
+        assertEquals(2, response.getStudents().size());
+        assertEquals(2, response.getEnrolledCount());
+    }
+
 }

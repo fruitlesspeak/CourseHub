@@ -58,12 +58,14 @@ public class CourseController {
     @GetMapping
     public ResponseEntity<List<CourseDto.Response>> list(
             @RequestParam(required = false) String  title,
-            @RequestParam(required = false) Integer professorId) {
+            @RequestParam(required = false) Integer professorId,
+            @RequestParam(required = false) String tag) {
 
         List<CourseDto.Response> result;
-        if (title != null && !title.isBlank()) result = courseService.search(title);
-        else if (professorId != null)           result = courseService.findByProfessor(professorId);
-        else                                    result = courseService.findAll();
+        if (tag != null && !tag.isBlank())           result = courseService.findByTag(tag);
+        else if (title != null && !title.isBlank())  result = courseService.search(title);
+        else if (professorId != null)                result = courseService.findByProfessor(professorId);
+        else                                         result = courseService.findAll();
 
         return ResponseEntity.ok(result);
     }
@@ -74,18 +76,26 @@ public class CourseController {
         return ResponseEntity.ok(courseService.findByUuid(uuid));
     }
 
-    /** GET /api/courses */
-    @GetMapping
-    public ResponseEntity<List<CourseDto.Response>> list(
-            @RequestParam(required = false) String tag){
-                
-        List<CourseDto.Response> result;
-        if (tag != null && !tag.isBlank()) result = courseService.findByTag(tag);
-        else  result = courseService.findAll();
-        
-        return ResponseEntity.ok(result);
+    /** GET /api/courses/my-courses */
+    @GetMapping("/my-courses")
+    public ResponseEntity<List<CourseDto.Response>> getMyCourses(HttpServletRequest request) {
+        Integer studentId = resolveStudentIdFromSession(request);
+        return ResponseEntity.ok(courseService.findMyCourses(studentId));
     }
 
+    /** GET /api/courses/{uuid}/content */
+    @GetMapping("/{uuid}/content")
+    public ResponseEntity<String> getCourseContent(
+            @PathVariable UUID uuid,
+            HttpServletRequest request) {
+
+        Integer studentId = resolveStudentIdFromSession(request);
+        CourseDto.Response course = courseService.findByUuid(uuid);
+
+        courseService.ensureStudentEnrolled(studentId, course.getId());
+
+        return ResponseEntity.ok("Protected course content");
+    }
 
     /** PATCH /api/courses/{uuid} */
     @PatchMapping("/{uuid}")
@@ -148,7 +158,7 @@ public class CourseController {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Authentication required.");
         }
         
-        if (!!UserRole.STUDENT.name().equals(role)) {
+        if (!UserRole.STUDENT.name().equals(role)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only students can enroll.");
         }
 

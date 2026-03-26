@@ -5,6 +5,7 @@ import com.example.backend.controller.GlobalExceptionHandler;
 import com.example.backend.dto.CourseDto;
 import com.example.backend.exception.CourseAccessDeniedException;
 import com.example.backend.service.CourseService;
+import com.example.backend.service.EnrollmentService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -17,15 +18,18 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.time.OffsetDateTime;
 import java.util.UUID;
+import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -57,11 +61,14 @@ class CourseControllerTest {
     @Mock
     private CourseService courseService;
 
+    @Mock
+    private EnrollmentService enrollmentService;
+
     private MockMvc mockMvc;
 
     @BeforeEach
     void setUp() {
-        CourseController controller = new CourseController(courseService);
+        CourseController controller = new CourseController(courseService, enrollmentService);
         mockMvc = MockMvcBuilders.standaloneSetup(controller)
                 .setControllerAdvice(new GlobalExceptionHandler())
                 .build();
@@ -285,10 +292,94 @@ class CourseControllerTest {
 
     @Test
     void deleteWithoutSessionReturns401WithoutCallingService() throws Exception {
-        mockMvc.perform(delete("/api/courses/{uuid}", COURSE_UUID))
-                .andExpect(status().isUnauthorized())
-                .andExpect(status().reason("Authentication required."));
-
-        verifyNoInteractions(courseService);
+            mockMvc.perform(delete("/api/courses/{uuid}", COURSE_UUID))
+                            .andExpect(status().isUnauthorized())
+                            .andExpect(status().reason("Authentication required."));
+            verifyNoInteractions(courseService);
     }
+
+
+// NEW TESTS FOR ENROLLMENT
+    @Test
+    void enrollAsStudentReturns201AndCallsService() throws Exception {
+            MockHttpSession session = new MockHttpSession();
+            session.setAttribute("AUTH_USER_ID", 5);
+            session.setAttribute("AUTH_USER_ROLE", "STUDENT");
+
+            CourseDto.Response course = CourseDto.Response.builder()
+                            .id(1)
+                            .uuid(COURSE_UUID)
+                            .title("Databases")
+                            .build();
+
+            when(courseService.findByUuid(COURSE_UUID)).thenReturn(course);
+
+            mockMvc.perform(post("/api/courses/{uuid}/enroll", COURSE_UUID)
+                            .session(session))
+                            .andExpect(status().isCreated());
+
+            verify(courseService).findByUuid(COURSE_UUID);
+            verify(enrollmentService).enrollOrReactivate(5, 1);
+    }
+
+    @Test
+    void enrollAsProfessorReturns403() throws Exception {
+            MockHttpSession session = new MockHttpSession();
+            session.setAttribute("AUTH_USER_ID", 7);
+            session.setAttribute("AUTH_USER_ROLE", "PROFESSOR");
+
+            mockMvc.perform(post("/api/courses/{uuid}/enroll", COURSE_UUID)
+                            .session(session))
+                            .andExpect(status().isForbidden());
+
+            verifyNoInteractions(enrollmentService);
+    }
+
+    @Test
+    void getMyCoursesAsStudentReturnsCourses() throws Exception {
+            MockHttpSession session = new MockHttpSession();
+            session.setAttribute("AUTH_USER_ID", 5);
+            session.setAttribute("AUTH_USER_ROLE", "STUDENT");
+
+            CourseDto.Response course = CourseDto.Response.builder()
+                            .id(1)
+                            .uuid(COURSE_UUID)
+                            .title("Databases")
+                            .build();
+
+            when(courseService.findMyCourses(5)).thenReturn(List.of(course));
+
+            mockMvc.perform(get("/api/courses/my-courses")
+                            .session(session))
+                            .andExpect(status().isOk())
+                            .andExpect(jsonPath("$[0].title").value("Databases"));
+
+            verify(courseService).findMyCourses(5);
+    }
+
+    @Test
+    void getMyCoursesWithoutSessionReturns401() throws Exception {
+            mockMvc.perform(get("/api/courses/my-courses"))
+                            .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void listWithTagReturnsFilteredCourses() throws Exception {
+            CourseDto.Response course = CourseDto.Response.builder()
+                            .id(1)
+                            .uuid(COURSE_UUID)
+                            .title("Java Course")
+                            .tags("java")
+                            .build();
+
+            when(courseService.findByTag("java")).thenReturn(List.of(course));
+
+            mockMvc.perform(get("/api/courses")
+                            .param("tag", "java"))
+                            .andExpect(status().isOk())
+                            .andExpect(jsonPath("$[0].title").value("Java Course"));
+
+            verify(courseService).findByTag("java");
+    }
+
 }
