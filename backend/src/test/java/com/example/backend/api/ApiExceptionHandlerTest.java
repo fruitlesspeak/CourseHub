@@ -1,5 +1,6 @@
 package com.example.backend.api;
 
+import com.example.backend.exception.ApiExceptionHandler;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

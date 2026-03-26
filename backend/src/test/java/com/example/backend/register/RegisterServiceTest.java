@@ -1,8 +1,12 @@
 package com.example.backend.register;
 
-import com.example.backend.user.User;
-import com.example.backend.user.UserRepository;
-import com.example.backend.user.UserRole;
+import com.example.backend.dto.auth.RegisterRequest;
+import com.example.backend.dto.auth.UserResponse;
+import com.example.backend.entity.User;
+import com.example.backend.entity.UserRole;
+import com.example.backend.exception.EmailAlreadyInUseException;
+import com.example.backend.repository.UserRepository;
+import com.example.backend.service.RegisterService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -38,17 +42,18 @@ class RegisterServiceTest {
     @Test
     void registerWithValidPayloadSavesUserAndReturnsResponse() {
         RegisterRequest request = new RegisterRequest(
-                "  Demo Student  ",
+                "  Demo  ",
+                "  Student  ",
                 "  DEMO@student.coursehub  ",
                 "CourseHub123!",
                 UserRole.STUDENT
         );
 
-        when(userRepository.existsByEmailIgnoreCase("demo@student.coursehub")).thenReturn(false);
+        when(userRepository.existsByEmail("demo@student.coursehub")).thenReturn(false);
         when(passwordEncoder.encode("CourseHub123!")).thenReturn("hashed-password");
         when(userRepository.save(any(User.class))).thenAnswer(invocation -> {
             User saved = invocation.getArgument(0, User.class);
-            saved.setId(42L);
+            saved.setId(42);
             return saved;
         });
 
@@ -58,17 +63,19 @@ class RegisterServiceTest {
         verify(userRepository).save(userCaptor.capture());
         User savedUser = userCaptor.getValue();
 
-        assertEquals("Demo Student", savedUser.getName());
+        assertEquals("Demo", savedUser.getFirstName());
+        assertEquals("Student", savedUser.getLastName());
         assertEquals("demo@student.coursehub", savedUser.getEmail());
         assertEquals("hashed-password", savedUser.getPasswordHash());
-        assertEquals(UserRole.STUDENT, savedUser.getRole());
+        assertEquals(false, savedUser.isProfessor());
 
-        assertEquals(42L, response.id());
-        assertEquals("Demo Student", response.name());
+        assertEquals(42, response.id());
+        assertEquals("Demo", response.firstName());
+        assertEquals("Student", response.lastName());
         assertEquals("demo@student.coursehub", response.email());
         assertEquals(UserRole.STUDENT, response.role());
 
-        verify(userRepository).existsByEmailIgnoreCase("demo@student.coursehub");
+        verify(userRepository).existsByEmail("demo@student.coursehub");
         verify(passwordEncoder).encode("CourseHub123!");
         verifyNoMoreInteractions(userRepository, passwordEncoder);
     }
@@ -76,16 +83,17 @@ class RegisterServiceTest {
     @Test
     void registerWithExistingEmailThrowsConflictException() {
         RegisterRequest request = new RegisterRequest(
-                "Demo Student",
+                "Demo",
+                "Student",
                 "demo@student.coursehub",
                 "CourseHub123!",
                 UserRole.STUDENT
         );
-        when(userRepository.existsByEmailIgnoreCase("demo@student.coursehub")).thenReturn(true);
+        when(userRepository.existsByEmail("demo@student.coursehub")).thenReturn(true);
 
         assertThrows(EmailAlreadyInUseException.class, () -> registerService.register(request));
 
-        verify(userRepository).existsByEmailIgnoreCase("demo@student.coursehub");
+        verify(userRepository).existsByEmail("demo@student.coursehub");
         verifyNoInteractions(passwordEncoder);
     }
 }

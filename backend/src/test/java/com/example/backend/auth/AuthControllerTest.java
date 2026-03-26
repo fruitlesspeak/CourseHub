@@ -1,6 +1,13 @@
 package com.example.backend.auth;
 
-import com.example.backend.user.UserRole;
+import com.example.backend.controller.AuthController;
+import com.example.backend.dto.auth.AuthSessionResponse;
+import com.example.backend.dto.auth.LoginRequest;
+import com.example.backend.dto.auth.LoginResponse;
+import com.example.backend.entity.UserRole;
+import com.example.backend.exception.AuthExceptionHandler;
+import com.example.backend.exception.InvalidCredentialsException;
+import com.example.backend.service.AuthService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,7 +42,7 @@ class AuthControllerTest {
         @Test
         void loginWithValidPayloadReturns200AndResponseBody() throws Exception {
                 when(authService.login(any(LoginRequest.class), any(HttpServletRequest.class)))
-                                .thenReturn(new LoginResponse(1L, UserRole.STUDENT, "/student/dashboard/1"));
+                                .thenReturn(new LoginResponse(1, UserRole.STUDENT, "/student/dashboard/1"));
 
                 mockMvc.perform(post("/api/auth/login")
                                 .contentType(MediaType.APPLICATION_JSON_VALUE)
@@ -72,7 +79,7 @@ class AuthControllerTest {
         }
 
         @Test
-        void loginWithInvalidPayloadReturns400() throws Exception {
+        void loginWithInvalidPayloadReturns422() throws Exception {
                 mockMvc.perform(post("/api/auth/login")
                                 .contentType(MediaType.APPLICATION_JSON_VALUE)
                                 .content("""
@@ -81,8 +88,9 @@ class AuthControllerTest {
                                                   "password": "short"
                                                 }
                                                 """))
-                                .andExpect(status().isBadRequest())
-                                .andExpect(jsonPath("$.message").value("Invalid login payload."));
+                                .andExpect(status().isUnprocessableEntity())
+                                .andExpect(jsonPath("$.email").value("must be a well-formed email address"))
+                                .andExpect(jsonPath("$.password").value("size must be between 8 and 200"));
 
                 verifyNoInteractions(authService);
         }
@@ -91,8 +99,9 @@ class AuthControllerTest {
         void sessionWhenAuthenticatedReturns200() throws Exception {
                 when(authService.getCurrentSession(any(HttpServletRequest.class)))
                                 .thenReturn(Optional.of(new AuthSessionResponse(
-                                                1L,
-                                                "Student User",
+                                                1,
+                                                "Student",
+                                                "User",
                                                 "student@coursehub.test",
                                                 UserRole.STUDENT,
                                                 "/student/dashboard/1"
@@ -102,7 +111,8 @@ class AuthControllerTest {
                                 .andExpect(status().isOk())
                                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON_VALUE))
                                 .andExpect(jsonPath("$.userId").value(1))
-                                .andExpect(jsonPath("$.name").value("Student User"))
+                                .andExpect(jsonPath("$.firstName").value("Student"))
+                                .andExpect(jsonPath("$.lastName").value("User"))
                                 .andExpect(jsonPath("$.role").value("STUDENT"));
         }
 

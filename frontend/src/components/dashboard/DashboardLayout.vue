@@ -34,12 +34,14 @@
           </button>
         </div>
 
-        <div class="empty-state">
-          <p>{{ emptyMessage }}</p>
-          <button class="action-btn secondary" type="button" @click="$emit('primaryAction')">
-            {{ emptyActionText }}
-          </button>
-        </div>
+        <slot name="content">
+          <div class="empty-state">
+            <p>{{ emptyMessage }}</p>
+            <button class="action-btn secondary" type="button" @click="$emit('primaryAction')">
+              {{ emptyActionText }}
+            </button>
+          </div>
+        </slot>
       </section>
     </main>
   </div>
@@ -67,8 +69,11 @@ const router = useRouter();
 const authStore = useAuthStore();
 
 const displayName = computed(() => {
-  if (authStore.session?.name) {
-    return authStore.session.name;
+  if (authStore.session) {
+    const first = authStore.session.firstName?.trim() ?? "";
+    const last = authStore.session.lastName?.trim() ?? "";
+    const full = `${first} ${last}`.trim();
+    if (full) return full;
   }
 
   return props.defaultName;
