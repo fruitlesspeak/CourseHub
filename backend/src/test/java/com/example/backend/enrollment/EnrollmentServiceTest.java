@@ -39,7 +39,7 @@ import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 public class EnrollmentServiceTest {
-        
+
     private static final UUID COURSE_UUID = UUID.fromString("11111111-1111-1111-1111-111111111111");
     private static final int STUDENT_ID = 1;
     private static final int COURSE_ID = 10;
@@ -62,11 +62,19 @@ public class EnrollmentServiceTest {
 
     @Test
     void shouldCreateNewEnrollment() {
+        Course course = new Course();
+        course.setId(10); // or whatever the test uses
+        course.setTitle("Test Course");
+        courseRepository.save(course);
+
         User user = new User();
         user.setId(STUDENT_ID);
 
         when(userRepository.findById(STUDENT_ID))
                 .thenReturn(Optional.of(user));
+
+        when(courseRepository.findById(COURSE_ID))
+                        .thenReturn(Optional.of(course));
 
         when(enrollmentRepository.findByUserIdAndCourseId(STUDENT_ID, COURSE_ID))
                 .thenReturn(Optional.empty());
@@ -174,6 +182,42 @@ public class EnrollmentServiceTest {
 
         assertThrows(EntityNotFoundException.class,
                 () -> enrollmentService.deactivate(STUDENT_ID, COURSE_ID));
+    }
+
+    @Test
+    void shouldThrowWhenUserNotFound() {
+            when(userRepository.findById(STUDENT_ID)).thenReturn(Optional.empty());
+
+            assertThrows(EntityNotFoundException.class,
+                            () -> enrollmentService.enrollOrReactivate(STUDENT_ID, COURSE_ID));
+    }
+
+    @Test
+    void shouldThrowWhenCourseNotFound() {
+            User user = new User();
+            user.setId(STUDENT_ID);
+
+            when(userRepository.findById(STUDENT_ID)).thenReturn(Optional.of(user));
+            when(courseRepository.findById(COURSE_ID)).thenReturn(Optional.empty());
+
+            assertThrows(EntityNotFoundException.class,
+                            () -> enrollmentService.enrollOrReactivate(STUDENT_ID, COURSE_ID));
+    }
+
+    @Test
+    void shouldThrowWhenDuplicateEnrollment() {
+            User user = new User();
+            user.setId(STUDENT_ID);
+
+            Enrollment existing = new Enrollment();
+            existing.setIsActive(true);
+
+            when(userRepository.findById(STUDENT_ID)).thenReturn(Optional.of(user));
+            when(enrollmentRepository.findByUserIdAndCourseId(STUDENT_ID, COURSE_ID))
+                            .thenReturn(Optional.of(existing));
+
+            assertThrows(IllegalStateException.class,
+                            () -> enrollmentService.enrollOrReactivate(STUDENT_ID, COURSE_ID));
     }
 
 }

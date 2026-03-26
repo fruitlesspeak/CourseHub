@@ -45,6 +45,10 @@ public class EnrollmentService {
             return;
         }
 
+        // Check course exists only if creating a new enrollment
+        courseRepository.findById(courseId)
+                .orElseThrow(() -> new EntityNotFoundException("Course not found with id: " + courseId));
+
         // Create new enrollment
         Enrollment e = new Enrollment();
         e.setUserId(studentId);
@@ -82,15 +86,20 @@ public class EnrollmentService {
         return enrollmentRepository.findByCourseIdAndIsActiveTrue(courseId);
     }
 
+    @Transactional(readOnly = true)
+    public boolean isEnrolled(Integer studentId, Integer courseId) {
+        return enrollmentRepository.findByUserIdAndCourseId(studentId, courseId)
+                .map(Enrollment::getIsActive) // only count active enrollments
+                .orElse(false);
+    }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
-
     private void ensureStudentExists(Integer studentId) {
         boolean valid = userRepository.findById(studentId)
                 .map(u -> !u.isProfessor())
                 .orElse(false);
         if (!valid) {
-            throw new IllegalArgumentException("No student found with id: " + studentId);
+            throw new EntityNotFoundException("No student found with id: " + studentId);
         }
     }
 }

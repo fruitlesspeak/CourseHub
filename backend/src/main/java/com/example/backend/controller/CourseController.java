@@ -12,8 +12,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 @RestController
 @RequestMapping("/api/courses")
@@ -85,16 +84,20 @@ public class CourseController {
 
     /** GET /api/courses/{uuid}/content */
     @GetMapping("/{uuid}/content")
-    public ResponseEntity<String> getCourseContent(
+    public ResponseEntity<Map<String, String>> getCourseContent(
             @PathVariable UUID uuid,
             HttpServletRequest request) {
 
         Integer studentId = resolveStudentIdFromSession(request);
         CourseDto.Response course = courseService.findByUuid(uuid);
 
-        courseService.ensureStudentEnrolled(studentId, course.getId());
-
-        return ResponseEntity.ok("Protected course content");
+         // Check enrollment
+        boolean enrolled = enrollmentService.isEnrolled(studentId, course.getId());
+        if (!enrolled) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You must be enrolled to access course materials.");
+        }
+        Map<String, String> response = Map.of("material", course.getDescription());//TEMPORARY
+        return ResponseEntity.ok(response);
     }
 
     /** PATCH /api/courses/{uuid} */
@@ -112,6 +115,18 @@ public class CourseController {
     public ResponseEntity<Void> delete(@PathVariable UUID uuid, HttpServletRequest httpRequest) {
         Integer professorId = resolveProfessorIdFromSession(httpRequest);
         courseService.delete(uuid, professorId);
+        return ResponseEntity.noContent().build();
+    }
+
+    /** DELETE /api/courses/{uuid}/enroll */
+    @DeleteMapping("/{uuid}/enroll")
+    public ResponseEntity<Void> unenroll(
+            @PathVariable UUID uuid,
+            HttpServletRequest httpRequest) {
+
+        Integer studentId = resolveStudentIdFromSession(httpRequest);
+        CourseDto.Response course = courseService.findByUuid(uuid);
+        enrollmentService.deactivate(studentId, course.getId());
         return ResponseEntity.noContent().build();
     }
 

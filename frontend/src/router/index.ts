@@ -6,6 +6,8 @@ import LoginView from '@/views/LoginView.vue'
 import DashboardView from '@/views/DashboardView.vue'
 import StudentDashboardView from '@/views/StudentDashboardView.vue'
 import ProfessorCreateCourseView from '@/views/ProfessorCreateCourseView.vue'
+import CourseCatalogView from '@/views/CourseCatalogView.vue'
+import CourseDetailView from '@/views/CourseDetailView.vue'
 import { useAuthStore } from '@/stores/authStore'
 
 const routes: Array<RouteRecordRaw> = [
@@ -53,6 +55,18 @@ const routes: Array<RouteRecordRaw> = [
     path: '/student/dashboard/:userId?',
     name: 'student-dashboard',
     component: StudentDashboardView,
+    meta: { requiresAuth: true, requiredRole: 'STUDENT' },
+  },
+  {
+    path: '/student/catalog',
+    name: 'student-catalog',
+    component: CourseCatalogView,
+    meta: { requiresAuth: true, requiredRole: 'STUDENT' },
+  },
+  {
+    path: '/student/courses/:uuid',
+    name: 'CourseDetail',
+    component: CourseDetailView,
     meta: { requiresAuth: true, requiredRole: 'STUDENT' },
   },
   {
