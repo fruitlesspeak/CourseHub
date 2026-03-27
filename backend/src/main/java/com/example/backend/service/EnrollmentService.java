@@ -53,7 +53,6 @@ public class EnrollmentService {
         Enrollment e = new Enrollment();
         e.setUserId(studentId);
         e.setCourseId(courseId);
-        e.setIsActive(true);
 
         enrollmentRepository.save(e);
     }

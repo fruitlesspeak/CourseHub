@@ -21,7 +21,6 @@ import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -460,10 +459,8 @@ class CourseServiceTest {
         return user;
     }
 
-
-    // NEW ADDED TESTS FOR ENROLLMENT
     @Test
-    void findByTagReturnsMatchingCourses() {
+    void mutation_findByTagReturnsMatchingCourses() {
         Course course = existingCourse(OWNER_PROFESSOR_ID);
         course.setTags("java,spring");
 
@@ -478,7 +475,7 @@ class CourseServiceTest {
 
 
     @Test
-    void findMyCoursesReturnsActiveEnrolledCourses() {
+    void mutation_findMyCoursesReturnsActiveEnrolledCourses() {
         int studentId = 5;
 
         Enrollment enrollment = new Enrollment();
@@ -502,7 +499,7 @@ class CourseServiceTest {
     }
 
     @Test
-    void findMyCoursesWithNoEnrollmentsReturnsEmptyList() {
+    void mutation_findMyCoursesWithNoEnrollmentsReturnsEmptyList() {
         int studentId = 5;
 
         when(enrollmentRepository.findByUserIdAndIsActiveTrue(studentId))
@@ -515,7 +512,7 @@ class CourseServiceTest {
     }
 
     @Test
-    void findMyCoursesWithMissingCoursesStillReturnsEmptySafely() {
+    void mutation_findMyCoursesWithMissingCoursesStillReturnsEmptySafely() {
         int studentId = 5;
 
         Enrollment enrollment = new Enrollment();
@@ -534,7 +531,7 @@ class CourseServiceTest {
     }
 
     @Test
-    void returnStudentsInCourseResponse() {
+    void mutation_findByUuidIncludesStudentsInCourseResponse() {
         UUID uuid = UUID.randomUUID();
 
         Course course = new Course();
@@ -568,44 +565,54 @@ class CourseServiceTest {
         assertEquals("John", response.getStudents().get(0).getFirstName());
     }
 
-     @Test
-    void enrollShouldBeReflectedInCourseStudents() {
+    @Test
+    void mutation_findByUuidWithMissingStudentInEnrollmentThrowsNotFound() {
+        Course course = new Course();
+        course.setId(1);
+        course.setUuid(COURSE_UUID);
+
+        Enrollment enrollment = new Enrollment();
+        enrollment.setUserId(STUDENT_ID);
+        enrollment.setCourseId(1);
+        enrollment.setIsActive(true);
+
+        when(courseRepository.findByUuid(COURSE_UUID)).thenReturn(Optional.of(course));
+        when(enrollmentRepository.findByCourseIdAndIsActiveTrue(1)).thenReturn(List.of(enrollment));
+        when(userRepository.findById(STUDENT_ID)).thenReturn(Optional.empty());
+
+        EntityNotFoundException ex = assertThrows(
+                EntityNotFoundException.class,
+                () -> courseService.findByUuid(COURSE_UUID)
+        );
+
+        assertEquals("User not found", ex.getMessage());
+    }
+
+    @Test
+    void mutation_findByUuidReflectsEnrollmentInCourseStudents() {
         UUID uuid = COURSE_UUID;
 
-        // Arrange course
         Course course = new Course();
         course.setId(1);
         course.setUuid(uuid);
 
-        // Arrange user
         User user = new User();
         user.setId(STUDENT_ID);
         user.setFirstName("John");
         user.setLastName("Doe");
         user.setEmail("test@test.com");
 
-        // Arrange enrollment (ACTIVE)
         Enrollment enrollment = new Enrollment();
         enrollment.setUserId(STUDENT_ID);
         enrollment.setCourseId(1);
-        enrollment.setIsActive(true);
+        enrollment.setIsActive(true);        
 
-        // Mock: course lookup
-        when(courseRepository.findByUuid(uuid))
-                .thenReturn(Optional.of(course));
+        when(courseRepository.findByUuid(uuid)).thenReturn(Optional.of(course));
+        when(enrollmentRepository.findByCourseIdAndIsActiveTrue(1)).thenReturn(List.of(enrollment));
+        when(userRepository.findById(STUDENT_ID)).thenReturn(Optional.of(user));
 
-        // Mock: enrollment lookup (this is what makes the student appear)
-        when(enrollmentRepository.findByCourseIdAndIsActiveTrue(1))
-                .thenReturn(List.of(enrollment));
-
-        // Mock: user lookup
-        when(userRepository.findById(STUDENT_ID))
-                .thenReturn(Optional.of(user));
-
-        // Act
         CourseDto.Response response = courseService.findByUuid(uuid);
 
-        // Assert
         assertNotNull(response.getStudents());
         assertEquals(1, response.getStudents().size());
         assertEquals(STUDENT_ID, response.getStudents().get(0).getId());
@@ -613,7 +620,7 @@ class CourseServiceTest {
     }
 
     @Test
-    void courseWithNoEnrollmentsReturnsEmptyStudentsList() {
+    void mutation_findByUuidWithNoEnrollmentsReturnsEmptyStudentsList() {
         UUID uuid = COURSE_UUID;
 
         Course course = new Course();
@@ -634,32 +641,7 @@ class CourseServiceTest {
     }
 
     @Test
-    void inactiveEnrollmentShouldNotAppearInCourse() {
-        UUID uuid = COURSE_UUID;
-
-        Course course = new Course();
-        course.setId(1);
-        course.setUuid(uuid);
-
-        Enrollment enrollment = new Enrollment();
-        enrollment.setUserId(STUDENT_ID);
-        enrollment.setCourseId(1);
-        enrollment.setIsActive(false); // ❗ inactive
-
-        when(courseRepository.findByUuid(uuid))
-                .thenReturn(Optional.of(course));
-
-        when(enrollmentRepository.findByCourseIdAndIsActiveTrue(1))
-                .thenReturn(List.of()); // inactive should NOT appear
-
-        CourseDto.Response response = courseService.findByUuid(uuid);
-
-        assertTrue(response.getStudents().isEmpty());
-        assertEquals(0, response.getEnrolledCount());
-    }
-
-    @Test
-    void multipleStudentsShouldBeReflectedInCourse() {
+    void mutation_findByUuidWithMultipleStudentsReturnsAllStudents() {
         UUID uuid = COURSE_UUID;
 
         Course course = new Course();
@@ -699,4 +681,22 @@ class CourseServiceTest {
         assertEquals(2, response.getEnrolledCount());
     }
 
+    @Test
+    void mutation_ensureStudentEnrolledAllowsActiveEnrollment() {
+        when(enrollmentRepository.existsByUserIdAndCourseIdAndIsActiveTrue(STUDENT_ID, 1)).thenReturn(true);
+
+        assertDoesNotThrow(() -> courseService.ensureStudentEnrolled(STUDENT_ID, 1));
+    }
+
+    @Test
+    void mutation_ensureStudentEnrolledRejectsMissingEnrollment() {
+        when(enrollmentRepository.existsByUserIdAndCourseIdAndIsActiveTrue(STUDENT_ID, 1)).thenReturn(false);
+
+        CourseAccessDeniedException ex = assertThrows(
+                CourseAccessDeniedException.class,
+                () -> courseService.ensureStudentEnrolled(STUDENT_ID, 1)
+        );
+
+        assertEquals("Student is not enrolled in this course", ex.getMessage());
+    }
 }
