@@ -2,7 +2,6 @@ package com.example.backend.register;
 
 import com.example.backend.controller.RegisterController;
 import com.example.backend.entity.User;
-import com.example.backend.entity.UserRole;
 import com.example.backend.exception.ApiExceptionHandler;
 import com.example.backend.repository.UserRepository;
 import com.example.backend.service.RegisterService;
