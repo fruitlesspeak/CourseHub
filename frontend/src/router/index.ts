@@ -14,7 +14,7 @@ const routes: Array<RouteRecordRaw> = [
   {
     path: '/',
     name: 'HomeView',
-    component: () => import('../views/HomeView.vue'),
+    redirect: { name: 'login' },
   },
   {
     path: '/hello',
