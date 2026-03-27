@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 import { useEnrollmentStore, parseTags } from '@/stores/enrollmentStore'
 import { courseApi, enrollmentApi, type Course } from '../api/index.ts'
+import type { AxiosResponse, InternalAxiosRequestConfig } from 'axios'
 
 vi.mock('../api/index.ts', () => ({
   courseApi: {
@@ -19,6 +20,16 @@ function deferred<T>() {
     resolve = res
   })
   return { promise, resolve }
+}
+
+function buildAxiosResponse<T>(data: T): AxiosResponse<T> {
+  return {
+    data,
+    status: 200,
+    statusText: 'OK',
+    headers: {},
+    config: { headers: {} } as InternalAxiosRequestConfig,
+  }
 }
 
 function buildCourse(overrides: Partial<Course> = {}): Course {
@@ -52,28 +63,28 @@ describe('useEnrollmentStore', () => {
 
   it('fetchCourses populates courses and resets the loading flag', async () => {
     const store = useEnrollmentStore()
-    const pending = deferred<{ data: Course[] }>()
+    const pending = deferred<AxiosResponse<Course[]>>()
     vi.mocked(courseApi.getAll).mockReturnValueOnce(pending.promise)
 
     const fetchPromise = store.fetchCourses({ tag: 'java' })
 
     expect(store.loading).toBe(true)
-    pending.resolve({ data: [buildCourse()] })
+    pending.resolve(buildAxiosResponse([buildCourse()]))
     await fetchPromise
 
     expect(courseApi.getAll).toHaveBeenCalledWith({ tag: 'java' })
     expect(store.loading).toBe(false)
     expect(store.courses).toHaveLength(1)
-    expect(store.courses[0].title).toBe('Intro to Java')
+    expect(store.courses[0]?.title).toBe('Intro to Java')
   })
 
   it('fetchMyEnrollments stores enrolled course uuids and updates the count', async () => {
     const store = useEnrollmentStore()
     vi.mocked(enrollmentApi.getMyCourses).mockResolvedValueOnce({
-      data: [
+      ...buildAxiosResponse([
         buildCourse({ uuid: 'course-a' }),
         buildCourse({ uuid: 'course-b' }),
-      ],
+      ]),
     })
 
     await store.fetchMyEnrollments()
@@ -85,7 +96,15 @@ describe('useEnrollmentStore', () => {
 
   it('enroll adds the course uuid and clears the enrolling flag after success', async () => {
     const store = useEnrollmentStore()
-    vi.mocked(enrollmentApi.enroll).mockResolvedValueOnce({ data: {} as never })
+    vi.mocked(enrollmentApi.enroll).mockResolvedValueOnce(
+      buildAxiosResponse({
+        id: 1,
+        userId: 5,
+        courseId: 1,
+        isActive: true,
+        createdAt: '2026-03-20T12:00:00Z',
+      }),
+    )
 
     await store.enroll('course-uuid')
 
@@ -96,7 +115,13 @@ describe('useEnrollmentStore', () => {
 
   it('enroll ignores duplicate in-flight requests for the same course', async () => {
     const store = useEnrollmentStore()
-    const pending = deferred<{ data: unknown }>()
+    const pending = deferred<AxiosResponse<{
+      id: number
+      userId: number
+      courseId: number
+      isActive: boolean
+      createdAt: string
+    }>>()
     vi.mocked(enrollmentApi.enroll).mockReturnValueOnce(pending.promise)
 
     const firstAttempt = store.enroll('course-uuid')
@@ -105,7 +130,13 @@ describe('useEnrollmentStore', () => {
     expect(store.isEnrolling('course-uuid')).toBe(true)
     expect(enrollmentApi.enroll).toHaveBeenCalledTimes(1)
 
-    pending.resolve({ data: {} })
+    pending.resolve(buildAxiosResponse({
+      id: 1,
+      userId: 5,
+      courseId: 1,
+      isActive: true,
+      createdAt: '2026-03-20T12:00:00Z',
+    }))
     await Promise.all([firstAttempt, secondAttempt])
 
     expect(store.isEnrolled('course-uuid')).toBe(true)

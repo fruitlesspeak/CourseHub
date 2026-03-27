@@ -134,7 +134,7 @@ onMounted(async () => {
       enrollmentApi.getMyCourses(),
     ])
     course.value = courseRes.data
-    enrolled.value = enrolledCourses.data.some((c) => c.uuid === uuid)
+    enrolled.value = enrolledCourses.data.some((c: Course) => c.uuid === uuid)
   } catch (err: any) {
     const status = err?.response?.status
     if (status === 404) {

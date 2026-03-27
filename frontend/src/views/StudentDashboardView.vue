@@ -69,20 +69,54 @@
             </div>
 
             <div v-if="courseStore.courses.length" class="item-list">
-              <button
+              <article
                 v-for="course in courseStore.courses"
                 :key="course.uuid"
-                type="button"
                 class="item-card course-card"
                 :class="{ selected: selectedCourseId === course.id }"
-                @click="toggleCourseSelection(course.id)"
               >
-                <div class="item-main">
+                <div class="item-main" @click="toggleCourseSelection(course.id)">
                   <h3>{{ course.title }}</h3>
                   <p class="item-code">{{ course.code }}</p>
                   <p v-if="course.description" class="item-desc">{{ course.description }}</p>
                 </div>
-              </button>
+                <div class="course-actions" @click.stop>
+                  <button
+                    type="button"
+                    class="course-btn manage"
+                    :aria-expanded="openMenuUuid === course.uuid"
+                    @click="toggleManageMenu(course.uuid)"
+                  >
+                    Manage
+                  </button>
+
+                  <div v-if="openMenuUuid === course.uuid" class="course-menu">
+                    <button
+                      type="button"
+                      class="course-menu-item"
+                      @click="onViewCourse(course.uuid)"
+                    >
+                      View Course
+                    </button>
+                    <button
+                      type="button"
+                      class="course-menu-item drop"
+                      :disabled="droppingUuids.has(course.uuid)"
+                      @click="onDrop(course.uuid)"
+                    >
+                      {{ droppingUuids.has(course.uuid) ? 'Dropping...' : 'Drop Course' }}
+                    </button>
+                    <button
+                      type="button"
+                      class="course-menu-item placeholder"
+                      disabled
+                      title="Rating will be implemented later."
+                    >
+                      Post Rating (Coming Soon)
+                    </button>
+                  </div>
+                </div>
+              </article>
             </div>
 
             <div v-else class="state empty">
@@ -117,6 +151,8 @@ const router = useRouter()
 const courseStore = useCourseStore()
 const importantDateStore = useImportantDateStore()
 const selectedCourseId = ref<number | null>(null)
+const droppingUuids = ref<Set<string>>(new Set())
+const openMenuUuid = ref<string | null>(null)
 
 const isLoading = computed(() => courseStore.loading || importantDateStore.loading)
 const loadError = computed(() => courseStore.error ?? importantDateStore.error)
@@ -146,13 +182,51 @@ const onBrowseCourses = async () => {
   await router.push({ name: 'student-catalog' })
 }
 
+const onViewCourse = async (uuid: string) => {
+  openMenuUuid.value = null
+  await router.push({ name: 'CourseDetail', params: { uuid }, query: { from: 'dashboard' } })
+}
+
+const toggleManageMenu = (uuid: string) => {
+  openMenuUuid.value = openMenuUuid.value === uuid ? null : uuid
+}
+
+const onDrop = async (uuid: string) => {
+  if (droppingUuids.value.has(uuid)) return
+
+  const confirmed = window.confirm('Drop this course?')
+  if (!confirmed) return
+
+  openMenuUuid.value = null
+
+  const nextDropping = new Set(droppingUuids.value)
+  nextDropping.add(uuid)
+  droppingUuids.value = nextDropping
+
+  try {
+    await enrollmentApi.drop(uuid)
+    courseStore.courses = courseStore.courses.filter((course) => course.uuid !== uuid)
+    selectedCourseId.value =
+      courseStore.courses.some((course) => course.id === selectedCourseId.value)
+        ? selectedCourseId.value
+        : null
+    await importantDateStore.fetchByCourses(courseStore.courses.map((course: Course) => course.id))
+  } catch (e: unknown) {
+    courseStore.error = extractError(e) ?? 'Failed to drop course.'
+  } finally {
+    const updatedDropping = new Set(droppingUuids.value)
+    updatedDropping.delete(uuid)
+    droppingUuids.value = updatedDropping
+  }
+}
+
 onMounted(async () => {
   courseStore.loading = true
   courseStore.error = null
   try {
     const { data } = await enrollmentApi.getMyCourses()
     courseStore.courses = data
-    await importantDateStore.fetchByCourses(data.map((course) => course.id))
+    await importantDateStore.fetchByCourses(data.map((course: Course) => course.id))
   } catch (e: unknown) {
     courseStore.courses = []
     importantDateStore.importantDates = []
@@ -268,7 +342,10 @@ function extractError(e: unknown): string | null {
 
 .course-card {
   text-align: left;
-  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  align-items: flex-start;
 }
 
 .course-card.selected {
@@ -299,6 +376,78 @@ function extractError(e: unknown): string | null {
   color: var(--color-text-secondary);
 }
 
+.course-actions {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.course-btn {
+  border-radius: 0.55rem;
+  padding: 0.35rem 0.7rem;
+  border: 1px solid transparent;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.course-btn.manage {
+  background: var(--color-bg-soft);
+  border-color: var(--color-border);
+  color: var(--color-text-primary);
+}
+
+.course-menu {
+  position: absolute;
+  top: calc(100% + 0.35rem);
+  right: 0;
+  min-width: 12rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.7rem;
+  background: var(--color-bg-surface);
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.12);
+  padding: 0.35rem;
+  display: grid;
+  gap: 0.2rem;
+  z-index: 5;
+}
+
+.course-menu-item {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  border-radius: 0.55rem;
+  padding: 0.55rem 0.7rem;
+  text-align: left;
+  font-size: 0.9rem;
+  color: var(--color-text-primary);
+  cursor: pointer;
+}
+
+.course-menu-item:hover:not(:disabled) {
+  background: var(--color-bg-soft);
+}
+
+.course-menu-item.drop {
+  color: #991b1b;
+}
+
+.course-menu-item.drop:hover:not(:disabled) {
+  background: #fef2f2;
+}
+
+.course-menu-item.placeholder {
+  color: var(--color-text-secondary);
+}
+
+.course-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.course-menu-item:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
 .state {
   margin-top: 1rem;
   border-radius: 0.75rem;
@@ -326,6 +475,12 @@ function extractError(e: unknown): string | null {
   .summary-grid,
   .dashboard-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .course-card {
+    flex-direction: column;
   }
 }
 </style>
