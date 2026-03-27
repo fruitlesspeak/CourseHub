@@ -135,8 +135,8 @@ onMounted(async () => {
     ])
     course.value = courseRes.data
     enrolled.value = enrolledCourses.data.some((c: Course) => c.uuid === uuid)
-  } catch (err: any) {
-    const status = err?.response?.status
+  } catch (err: unknown) {
+    const status = getErrorStatus(err)
     if (status === 404) {
       error.value = 'Course not found.'
     } else {
@@ -153,8 +153,8 @@ async function handleEnroll() {
   try {
     await enrollmentApi.enroll(course.value.uuid)
     enrolled.value = true
-  } catch (err: any) {
-    const status = err?.response?.status
+  } catch (err: unknown) {
+    const status = getErrorStatus(err)
     if (status === 409) {
       enrolled.value = true
     } else {
@@ -169,6 +169,13 @@ const formatDateTime = (isoDate: string) => new Date(isoDate).toLocaleString()
 
 const toCourseHref = (link: string) =>
   link.startsWith('www.') ? `https://${link}` : link
+
+function getErrorStatus(err: unknown): number | undefined {
+  if (!err || typeof err !== 'object' || !('response' in err)) return undefined
+  const response = err.response
+  if (!response || typeof response !== 'object' || !('status' in response)) return undefined
+  return typeof response.status === 'number' ? response.status : undefined
+}
 </script>
 
 <style scoped>

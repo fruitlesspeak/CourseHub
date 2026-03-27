@@ -178,8 +178,8 @@ async function loadCourses(tag?: string) {
   error.value = null
   try {
     await store.fetchCourses(tag ? { tag } : {})
-  } catch (err: any) {
-    const status = err?.response?.status
+  } catch (err: unknown) {
+    const status = getErrorStatus(err)
     if (status === 401) {
       error.value = 'You must be logged in to browse courses.'
     } else {
@@ -209,8 +209,8 @@ async function handleEnroll(courseUuid: string) {
   try {
     await store.enroll(courseUuid)
     showToast('Enrolled! You now have access to course materials.', 'success')
-  } catch (err: any) {
-    const status = err?.response?.status
+  } catch (err: unknown) {
+    const status = getErrorStatus(err)
     if (status === 409) {
       // Already enrolled — just sync local state silently
       store.enrolledUuids.add(courseUuid)
@@ -235,6 +235,13 @@ function showToast(message: string, variant: 'success' | 'error' | 'info') {
     variant,
     _t: setTimeout(() => { toast.value.visible = false }, 4000),
   }
+}
+
+function getErrorStatus(err: unknown): number | undefined {
+  if (!err || typeof err !== 'object' || !('response' in err)) return undefined
+  const response = err.response
+  if (!response || typeof response !== 'object' || !('status' in response)) return undefined
+  return typeof response.status === 'number' ? response.status : undefined
 }
 </script>
 
