@@ -62,3 +62,7 @@ jobs:
         with:
           name: coverage-report
           path: backend/target/site/jacoco/
+
+      - name: Trigger Render backend deploy
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: curl -X POST "${{ secrets.RENDER_BACKEND_DEPLOY_HOOK_URL }}"
