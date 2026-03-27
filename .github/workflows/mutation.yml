@@ -38,8 +38,8 @@ jobs:
       - name: Run PIT mutation coverage
         run: >
           mvn -B org.pitest:pitest-maven:mutationCoverage
-          -DtargetClasses=com.example.backend.service.RegisterService,com.example.backend.service.CourseService
-          -DtargetTests=com.example.backend.register.*,com.example.backend.course.*
+          -DtargetClasses=com.example.backend.service.AuthService,com.example.backend.service.RegisterService,com.example.backend.service.CourseService,com.example.backend.service.EnrollmentService
+          -DtargetTests=com.example.backend.auth.AuthServiceTest,com.example.backend.register.RegisterServiceTest,com.example.backend.course.CourseServiceTest,com.example.backend.enrollment.EnrollmentServiceTest
 
       - name: Upload mutation reports
         if: always()
