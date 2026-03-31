@@ -47,6 +47,3 @@ jobs:
           path: frontend/dist/
           retention-days: 7
 
-      - name: Trigger Render frontend deploy
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        run: curl -X POST "${{ secrets.RENDER_FRONTEND_DEPLOY_HOOK_URL }}"
