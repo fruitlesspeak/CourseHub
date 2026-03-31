@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { courseApi, type Course, type CreateCoursePayload, type UpdateCoursePayload } from '../api/index.ts'
+import { extractApiErrorMessage } from '@/utils/apiErrors'
 
 export const useCourseStore = defineStore('courses', () => {
   // ── State ──────────────────────────────────────────────────────────────────
@@ -15,7 +16,7 @@ export const useCourseStore = defineStore('courses', () => {
       const { data } = await courseApi.getAll(params)
       courses.value = data
     } catch (e) {
-      error.value = extractError(e) ?? 'Failed to load courses.'
+      error.value = extractApiErrorMessage(e) ?? "We couldn't load courses right now. Please try again."
     } finally {
       loading.value = false
     }
@@ -41,11 +42,3 @@ export const useCourseStore = defineStore('courses', () => {
 
   return { courses, loading, error, fetchAll, create, update, remove }
 })
-
-function extractError(e: unknown): string | null {
-  if (e && typeof e === 'object' && 'response' in e) {
-    const resp = (e as { response?: { data?: { error?: string } } }).response
-    return resp?.data?.error ?? null
-  }
-  return null
-}

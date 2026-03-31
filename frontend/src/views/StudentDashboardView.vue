@@ -136,6 +136,7 @@ import { enrollmentApi, type Course, type ImportantDate } from '@/api'
 import DashboardLayout from '@/components/dashboard/DashboardLayout.vue'
 import { useCourseStore } from '@/stores/courseStore'
 import { useImportantDateStore } from '@/stores/importantDateStore'
+import { extractApiErrorMessage } from '@/utils/apiErrors'
 
 type DashboardItem = {
   id: string
@@ -212,7 +213,7 @@ const onDrop = async (uuid: string) => {
         : null
     await importantDateStore.fetchByCourses(courseStore.courses.map((course: Course) => course.id))
   } catch (e: unknown) {
-    courseStore.error = extractError(e) ?? 'Failed to drop course.'
+    courseStore.error = extractApiErrorMessage(e) ?? "We couldn't drop this course right now. Please try again."
   } finally {
     const updatedDropping = new Set(droppingUuids.value)
     updatedDropping.delete(uuid)
@@ -230,7 +231,7 @@ onMounted(async () => {
   } catch (e: unknown) {
     courseStore.courses = []
     importantDateStore.importantDates = []
-    courseStore.error = extractError(e) ?? 'Failed to load courses.'
+    courseStore.error = extractApiErrorMessage(e) ?? "We couldn't load courses right now. Please try again."
   } finally {
     courseStore.loading = false
   }
@@ -254,14 +255,6 @@ function toImportantDateItem(importantDate: ImportantDate, course?: Course): Das
 
 function formatDateTime(isoDate: string): string {
   return new Date(isoDate).toLocaleString()
-}
-
-function extractError(e: unknown): string | null {
-  if (e && typeof e === 'object' && 'response' in e) {
-    const response = (e as { response?: { data?: { error?: string; message?: string } } }).response
-    return response?.data?.error ?? response?.data?.message ?? null
-  }
-  return null
 }
 </script>
 

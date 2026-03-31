@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { userApi, type User, type CreateUserPayload, type UpdateUserPayload } from '../api/index.ts'
+import { extractApiErrorMessage } from '@/utils/apiErrors'
 
 export const useUserStore = defineStore('users', () => {
   // ── State ──────────────────────────────────────────────────────────────────
@@ -20,7 +21,7 @@ export const useUserStore = defineStore('users', () => {
       const { data } = await userApi.getAll(params)
       users.value = data
     } catch (e) {
-      error.value = extractError(e) ?? 'Failed to load users.'
+      error.value = extractApiErrorMessage(e) ?? "We couldn't load users right now. Please try again."
     } finally {
       loading.value = false
     }
@@ -46,11 +47,3 @@ export const useUserStore = defineStore('users', () => {
 
   return { users, loading, error, professors, students, fetchAll, create, update, remove }
 })
-
-function extractError(e: unknown): string | null {
-  if (e && typeof e === 'object' && 'response' in e) {
-    const resp = (e as { response?: { data?: { error?: string } } }).response
-    return resp?.data?.error ?? null
-  }
-  return null
-}

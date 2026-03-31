@@ -99,7 +99,7 @@ public class EnrollmentServiceTest {
         IllegalStateException ex = assertThrows(IllegalStateException.class,
                 () -> enrollmentService.enrollOrReactivate(STUDENT_ID, COURSE_ID));
 
-        assertEquals("User already enrolled in this course", ex.getMessage());
+        assertEquals("You are already enrolled in this course.", ex.getMessage());
         verify(enrollmentRepository, never()).save(any(Enrollment.class));
     }
 
@@ -129,7 +129,7 @@ public class EnrollmentServiceTest {
         IllegalStateException ex = assertThrows(IllegalStateException.class,
                 () -> enrollmentService.deactivate(STUDENT_ID, COURSE_ID));
 
-        assertEquals("Enrollment already inactive", ex.getMessage());
+        assertEquals("You have already dropped this course.", ex.getMessage());
         verify(enrollmentRepository, never()).save(any(Enrollment.class));
     }
 
@@ -141,7 +141,7 @@ public class EnrollmentServiceTest {
         EntityNotFoundException ex = assertThrows(EntityNotFoundException.class,
                 () -> enrollmentService.deactivate(STUDENT_ID, COURSE_ID));
 
-        assertEquals("Enrollment not found", ex.getMessage());
+        assertEquals("This enrollment could not be found.", ex.getMessage());
     }
 
     @Test
@@ -151,7 +151,7 @@ public class EnrollmentServiceTest {
         EntityNotFoundException ex = assertThrows(EntityNotFoundException.class,
                 () -> enrollmentService.enrollOrReactivate(STUDENT_ID, COURSE_ID));
 
-        assertEquals("No student found with id: 1", ex.getMessage());
+        assertEquals("This student account could not be found.", ex.getMessage());
         verify(enrollmentRepository, never()).save(any(Enrollment.class));
     }
 
@@ -165,7 +165,7 @@ public class EnrollmentServiceTest {
         EntityNotFoundException ex = assertThrows(EntityNotFoundException.class,
                 () -> enrollmentService.enrollOrReactivate(STUDENT_ID, COURSE_ID));
 
-        assertEquals("No student found with id: 1", ex.getMessage());
+        assertEquals("This student account could not be found.", ex.getMessage());
         verify(courseRepository, never()).findById(COURSE_ID);
     }
 
@@ -178,7 +178,7 @@ public class EnrollmentServiceTest {
         EntityNotFoundException ex = assertThrows(EntityNotFoundException.class,
                 () -> enrollmentService.enrollOrReactivate(STUDENT_ID, COURSE_ID));
 
-        assertEquals("Course not found with id: 10", ex.getMessage());
+        assertEquals("This course could not be found.", ex.getMessage());
         verify(enrollmentRepository, never()).save(any(Enrollment.class));
     }
 

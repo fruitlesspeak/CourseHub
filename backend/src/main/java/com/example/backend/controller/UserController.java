@@ -31,7 +31,7 @@ public class UserController {
             @Valid @RequestBody UserDto.CreateRequest req,
             HttpServletRequest httpRequest) {
         sessionAuthService.requireAuthenticatedUser(httpRequest);
-        throw new ResponseStatusException(FORBIDDEN, "User creation is only available through registration.");
+        throw new ResponseStatusException(FORBIDDEN, "Accounts can only be created through the sign-up page.");
     }
 
     /** GET /api/users?professor=true|false */
@@ -40,7 +40,7 @@ public class UserController {
             @RequestParam(required = false) Boolean professor,
             HttpServletRequest httpRequest) {
         sessionAuthService.requireAuthenticatedUser(httpRequest);
-        throw new ResponseStatusException(FORBIDDEN, "User listing is not available.");
+        throw new ResponseStatusException(FORBIDDEN, "You do not have access to view the user list.");
     }
 
     /** GET /api/users/{uuid} */
@@ -64,14 +64,14 @@ public class UserController {
     @DeleteMapping("/{uuid}") 
     public ResponseEntity<Void> delete(@PathVariable UUID uuid, HttpServletRequest httpRequest) {
         sessionAuthService.requireAuthenticatedUser(httpRequest);
-        throw new ResponseStatusException(FORBIDDEN, "User deletion is not available.");
+        throw new ResponseStatusException(FORBIDDEN, "User accounts cannot be deleted here.");
     }
 
     private void ensureCurrentUserOwns(UUID uuid, HttpServletRequest httpRequest) {
         Integer currentUserId = sessionAuthService.requireAuthenticatedUser(httpRequest).userId();
         Integer requestedUserId = userService.findUserIdByUuid(uuid);
         if (!requestedUserId.equals(currentUserId)) {
-            throw new ResponseStatusException(FORBIDDEN, "You can only access your own user profile.");
+            throw new ResponseStatusException(FORBIDDEN, "You can only view or update your own profile.");
         }
     }
 }

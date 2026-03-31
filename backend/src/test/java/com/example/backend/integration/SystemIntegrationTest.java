@@ -559,7 +559,7 @@ public class SystemIntegrationTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(registerRequest))
                 .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.message").value("Email already in use"));
+                .andExpect(jsonPath("$.message").value("An account with this email already exists."));
     }
 
     // ============================================================

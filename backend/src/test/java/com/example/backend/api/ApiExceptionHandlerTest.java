@@ -18,6 +18,6 @@ class ApiExceptionHandlerTest {
         ResponseEntity<?> response = handler.handleEmailConflict();
 
         assertEquals(HttpStatus.CONFLICT, response.getStatusCode());
-        assertEquals(Map.of("message", "Email already in use"), response.getBody());
+        assertEquals(Map.of("message", "An account with this email already exists."), response.getBody());
     }
 }
