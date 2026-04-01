@@ -162,7 +162,9 @@ CREATE TRIGGER trg_reviews_updated_at
 INSERT INTO users (email, password_hash, first_name, last_name, is_professor, student_id)
 VALUES
   ('prof.demo@coursehub.local', '$2a$10$rCvl0I3EhWWRETMhfF5IneSCjjk0tSrRQ8U2LtSPykhLJm.H.pzLu', 'Paula', 'Professor', TRUE, NULL),
-  ('student.demo@coursehub.local', '$2a$10$rCvl0I3EhWWRETMhfF5IneSCjjk0tSrRQ8U2LtSPykhLJm.H.pzLu', 'Sam', 'Student', FALSE, 'S100001');
+  ('student.demo@coursehub.local', '$2a$10$rCvl0I3EhWWRETMhfF5IneSCjjk0tSrRQ8U2LtSPykhLJm.H.pzLu', 'Sam', 'Student', FALSE, 'S100001'),
+  ('demostudent@coursehub.ca', '$2y$10$vZmT3.AskbW5O92cIkBUD.LPQNGkcY6faGA4rWHbIJvDKpC/nL3m.', 'Demo', 'Student', FALSE, 'S100002'),
+  ('demoprof@coursehub.ca', '$2y$10$vZmT3.AskbW5O92cIkBUD.LPQNGkcY6faGA4rWHbIJvDKpC/nL3m.', 'Demo', 'Prof', TRUE, NULL);
 
 -- Demo courses owned by the professor account
 INSERT INTO courses (title, code, description, tags, material, due_date, professor_id)
