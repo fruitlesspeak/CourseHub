@@ -130,7 +130,7 @@ class CourseControllerTest {
                         .contentType(MediaType.APPLICATION_JSON_VALUE)
                         .content(VALID_CREATE_PAYLOAD))
                 .andExpect(status().isForbidden())
-                .andExpect(status().reason("Only professors can manage courses."));
+                .andExpect(jsonPath("$.error").value("Only professors can create, update, or delete courses."));
 
         verifyNoInteractions(courseService);
     }
@@ -141,7 +141,7 @@ class CourseControllerTest {
                         .contentType(MediaType.APPLICATION_JSON_VALUE)
                         .content(VALID_CREATE_PAYLOAD))
                 .andExpect(status().isUnauthorized())
-                .andExpect(status().reason("Authentication required."));
+                .andExpect(jsonPath("$.error").value("Please sign in to continue."));
 
         verifyNoInteractions(courseService);
     }
@@ -156,7 +156,7 @@ class CourseControllerTest {
                         .contentType(MediaType.APPLICATION_JSON_VALUE)
                         .content(VALID_CREATE_PAYLOAD))
                 .andExpect(status().isUnauthorized())
-                .andExpect(status().reason("Authentication required."));
+                .andExpect(jsonPath("$.error").value("Please sign in to continue."));
 
         verifyNoInteractions(courseService);
     }
@@ -171,7 +171,7 @@ class CourseControllerTest {
                         .contentType(MediaType.APPLICATION_JSON_VALUE)
                         .content(VALID_CREATE_PAYLOAD))
                 .andExpect(status().isUnauthorized())
-                .andExpect(status().reason("Authentication required."));
+                .andExpect(jsonPath("$.error").value("Please sign in to continue."));
 
         verifyNoInteractions(courseService);
     }
@@ -185,7 +185,7 @@ class CourseControllerTest {
         mockMvc.perform(post("/api/courses")
                         .session(session)
                         .contentType(MediaType.APPLICATION_JSON_VALUE)
-                        .content("""
+                .content("""
                                 {
                                   "title": "   ",
                                   "code": "COMP101",
@@ -194,7 +194,7 @@ class CourseControllerTest {
                                 }
                                 """))
                 .andExpect(status().isUnprocessableEntity())
-                .andExpect(jsonPath("$.title").value("must not be blank"));
+                .andExpect(jsonPath("$.title").value("Title is required."));
 
         verifyNoInteractions(courseService);
     }
@@ -208,7 +208,7 @@ class CourseControllerTest {
         mockMvc.perform(post("/api/courses")
                         .session(session)
                         .contentType(MediaType.APPLICATION_JSON_VALUE)
-                        .content("""
+                .content("""
                                 {
                                   "title": "Intro to Java",
                                   "code": "   ",
@@ -217,7 +217,7 @@ class CourseControllerTest {
                                 }
                                 """))
                 .andExpect(status().isUnprocessableEntity())
-                .andExpect(jsonPath("$.code").value("must not be blank"));
+                .andExpect(jsonPath("$.code").value("Code is required."));
 
         verifyNoInteractions(courseService);
     }
@@ -265,14 +265,14 @@ class CourseControllerTest {
         session.setAttribute("AUTH_USER_ROLE", "PROFESSOR");
 
         when(courseService.update(eq(COURSE_UUID), any(CourseDto.UpdateRequest.class), eq(9)))
-                .thenThrow(new CourseAccessDeniedException("You can only modify your own courses."));
+                .thenThrow(new CourseAccessDeniedException("You can only edit or delete courses you created."));
 
         mockMvc.perform(patch("/api/courses/{uuid}", COURSE_UUID)
                         .session(session)
                         .contentType(MediaType.APPLICATION_JSON_VALUE)
-                        .content(UPDATE_PAYLOAD))
+                .content(UPDATE_PAYLOAD))
                 .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.error").value("You can only modify your own courses."));
+                .andExpect(jsonPath("$.error").value("You can only edit or delete courses you created."));
     }
 
     @Test
@@ -286,7 +286,7 @@ class CourseControllerTest {
                         .contentType(MediaType.APPLICATION_JSON_VALUE)
                         .content(UPDATE_PAYLOAD))
                 .andExpect(status().isForbidden())
-                .andExpect(status().reason("Only professors can manage courses."));
+                .andExpect(jsonPath("$.error").value("Only professors can create, update, or delete courses."));
 
         verifyNoInteractions(courseService);
     }
@@ -308,7 +308,7 @@ class CourseControllerTest {
     void deleteWithoutSessionReturns401WithoutCallingService() throws Exception {
             mockMvc.perform(delete("/api/courses/{uuid}", COURSE_UUID))
                             .andExpect(status().isUnauthorized())
-                            .andExpect(status().reason("Authentication required."));
+                            .andExpect(jsonPath("$.error").value("Please sign in to continue."));
             verifyNoInteractions(courseService);
     }
 
@@ -427,13 +427,13 @@ class CourseControllerTest {
             mockMvc.perform(get("/api/courses/{uuid}/content", COURSE_UUID)
                             .session(session))
                             .andExpect(status().isForbidden())
-                            .andExpect(status().reason("You must be enrolled to access course materials."));
+                            .andExpect(jsonPath("$.error").value("You must be enrolled to access course materials."));
     }
 
     @Test
     void getCourseMaterialWithoutSessionReturns401() throws Exception {
             mockMvc.perform(get("/api/courses/{uuid}/content", COURSE_UUID))
                             .andExpect(status().isUnauthorized())
-                            .andExpect(status().reason("Authentication required."));
+                            .andExpect(jsonPath("$.error").value("Please sign in to continue."));
     }
 }

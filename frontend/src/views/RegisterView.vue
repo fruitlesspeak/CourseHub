@@ -139,6 +139,7 @@
 import { reactive, ref } from "vue";
 import { useRouter } from "vue-router";
 import { useAuthStore } from "@/stores/authStore";
+import { extractApiErrorMessage } from "@/utils/apiErrors";
 
 const router = useRouter();
 const authStore = useAuthStore();
@@ -183,9 +184,12 @@ async function onSubmit() {
     });
 
     if (!response.ok) {
-      if (response.status === 409) error.value = "Email already in use.";
-      else if (response.status === 400) error.value = "Invalid input. Please check your fields.";
-      else error.value = "Registration failed. Try again.";
+      const payload = await response.json().catch(() => null);
+      if (response.status === 409) error.value = "An account with this email already exists. Try signing in instead.";
+      else if (response.status === 422) {
+        error.value = extractApiErrorMessage({ response: { status: response.status, data: payload } })
+          ?? "Please review your details and try again.";
+      } else error.value = "We couldn't create your account right now. Please try again.";
       return;
     }
 
@@ -200,7 +204,7 @@ async function onSubmit() {
     });
 
     if (!loginResponse.ok) {
-      error.value = "Account created, but automatic sign-in failed. Please sign in.";
+      error.value = "Your account was created, but we couldn't sign you in automatically. Please sign in.";
       await router.push({ path: "/login", query: { registered: "1" } });
       return;
     }
@@ -211,7 +215,7 @@ async function onSubmit() {
     await authStore.fetchSession(true);
     await router.push(authStore.defaultDashboardPath);
   } catch {
-    error.value = "Registration failed. Try again.";
+    error.value = "We couldn't create your account right now. Please try again.";
   } finally {
     loading.value = false;
   }

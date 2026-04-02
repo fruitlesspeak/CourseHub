@@ -10,13 +10,13 @@ public class ImportantDateDto {
 
     public static class CreateRequest {
 
-        @NotBlank
-        @Size(max = 255)
+        @NotBlank(message = "Title is required.")
+        @Size(max = 255, message = "Title must be 255 characters or fewer.")
         private String title;
 
         private String description;
 
-        @NotNull
+        @NotNull(message = "Due date is required.")
         private OffsetDateTime dueAt;
 
         public CreateRequest() {}
@@ -48,7 +48,7 @@ public class ImportantDateDto {
 
     public static class UpdateRequest {
 
-        @Size(max = 255)
+        @Size(max = 255, message = "Title must be 255 characters or fewer.")
         private String title;
 
         private String description;

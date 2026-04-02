@@ -36,7 +36,7 @@ public class EnrollmentService {
             Enrollment e = existing.get();
 
             if (Boolean.TRUE.equals(e.getIsActive())) {
-                throw new IllegalStateException("User already enrolled in this course");
+                throw new IllegalStateException("You are already enrolled in this course.");
             }
 
             // Reactivate
@@ -47,7 +47,7 @@ public class EnrollmentService {
 
         // Check course exists only if creating a new enrollment
         courseRepository.findById(courseId)
-                .orElseThrow(() -> new EntityNotFoundException("Course not found with id: " + courseId));
+                .orElseThrow(() -> new EntityNotFoundException("This course could not be found."));
 
         // Create new enrollment
         Enrollment e = new Enrollment();
@@ -63,10 +63,10 @@ public class EnrollmentService {
 
         Enrollment e = enrollmentRepository
                 .findByUserIdAndCourseId(studentId, courseId)
-                .orElseThrow(() -> new EntityNotFoundException("Enrollment not found"));
+                .orElseThrow(() -> new EntityNotFoundException("This enrollment could not be found."));
 
         if (!Boolean.TRUE.equals(e.getIsActive())) {
-            throw new IllegalStateException("Enrollment already inactive");
+            throw new IllegalStateException("You have already dropped this course.");
         }
 
         e.setIsActive(false);
@@ -98,7 +98,7 @@ public class EnrollmentService {
                 .map(u -> !u.isProfessor())
                 .orElse(false);
         if (!valid) {
-            throw new EntityNotFoundException("No student found with id: " + studentId);
+            throw new EntityNotFoundException("This student account could not be found.");
         }
     }
 }

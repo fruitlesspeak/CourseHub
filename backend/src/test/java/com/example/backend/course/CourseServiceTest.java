@@ -116,7 +116,7 @@ class CourseServiceTest {
                 () -> courseService.create(request, OWNER_PROFESSOR_ID)
         );
 
-        assertEquals("Course link must start with https:// or www.", ex.getMessage());
+        assertEquals("Enter a valid course link starting with https:// or www.", ex.getMessage());
         verify(courseRepository, never()).save(any(Course.class));
     }
 
@@ -133,7 +133,7 @@ class CourseServiceTest {
                 () -> courseService.create(request, OWNER_PROFESSOR_ID)
         );
 
-        assertEquals("Course link is invalid.", ex.getMessage());
+        assertEquals("Enter a valid course link.", ex.getMessage());
         verify(courseRepository, never()).save(any(Course.class));
     }
 
@@ -168,7 +168,7 @@ class CourseServiceTest {
                 () -> courseService.create(request, 999)
         );
 
-        assertEquals("No professor found with id: 999", ex.getMessage());
+        assertEquals("The selected professor could not be found.", ex.getMessage());
         verify(courseRepository, never()).save(any(Course.class));
     }
 
@@ -188,7 +188,7 @@ class CourseServiceTest {
                 () -> courseService.create(request, OWNER_PROFESSOR_ID)
         );
 
-        assertEquals("No professor found with id: 7", ex.getMessage());
+        assertEquals("The selected professor could not be found.", ex.getMessage());
         verify(courseRepository, never()).save(any(Course.class));
     }
 
@@ -280,7 +280,7 @@ class CourseServiceTest {
                 () -> courseService.findByUuid(COURSE_UUID)
         );
 
-        assertEquals("Course not found: " + COURSE_UUID, ex.getMessage());
+        assertEquals("This course could not be found.", ex.getMessage());
     }
 
     @Test
@@ -398,7 +398,7 @@ class CourseServiceTest {
                 () -> courseService.update(COURSE_UUID, new CourseDto.UpdateRequest(), OTHER_PROFESSOR_ID)
         );
 
-        assertEquals("You can only modify your own courses.", ex.getMessage());
+        assertEquals("You can only edit or delete courses you created.", ex.getMessage());
         verify(courseRepository, never()).save(any(Course.class));
     }
 
@@ -421,7 +421,7 @@ class CourseServiceTest {
                 () -> courseService.delete(COURSE_UUID, OTHER_PROFESSOR_ID)
         );
 
-        assertEquals("You can only modify your own courses.", ex.getMessage());
+        assertEquals("You can only edit or delete courses you created.", ex.getMessage());
         verify(courseRepository, never()).delete(any(Course.class));
     }
 
@@ -585,7 +585,7 @@ class CourseServiceTest {
                 () -> courseService.findByUuid(COURSE_UUID)
         );
 
-        assertEquals("User not found", ex.getMessage());
+        assertEquals("This user could not be found.", ex.getMessage());
     }
 
     @Test

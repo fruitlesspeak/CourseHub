@@ -122,7 +122,7 @@ public class CourseService {
 
     private Course getByUuid(UUID uuid) {
         return courseRepository.findByUuid(uuid)
-                .orElseThrow(() -> new EntityNotFoundException("Course not found: " + uuid));
+                .orElseThrow(() -> new EntityNotFoundException("This course could not be found."));
     }
 
     private void ensureProfessorExists(Integer professorId) {
@@ -130,13 +130,13 @@ public class CourseService {
                 .map(u -> u.isProfessor())
                 .orElse(false);
         if (!valid) {
-            throw new IllegalArgumentException("No professor found with id: " + professorId);
+            throw new IllegalArgumentException("The selected professor could not be found.");
         }
     }
 
     private static void ensureProfessorOwnsCourse(Course course, Integer requestingProfessorId) {
         if (!course.getProfessorId().equals(requestingProfessorId)) {
-            throw new CourseAccessDeniedException("You can only modify your own courses.");
+            throw new CourseAccessDeniedException("You can only edit or delete courses you created.");
         }
     }
 
@@ -171,16 +171,16 @@ public class CourseService {
 
         String normalized = trimmed.startsWith("www.") ? "https://" + trimmed : trimmed;
         if (!normalized.startsWith("https://")) {
-            throw new IllegalArgumentException("Course link must start with https:// or www.");
+            throw new IllegalArgumentException("Enter a valid course link starting with https:// or www.");
         }
 
         try {
             URI uri = new URI(normalized);
             if (uri.getHost() == null || uri.getHost().isBlank()) {
-                throw new IllegalArgumentException("Course link is invalid.");
+                throw new IllegalArgumentException("Enter a valid course link.");
             }
         } catch (URISyntaxException e) {
-            throw new IllegalArgumentException("Course link is invalid.");
+            throw new IllegalArgumentException("Enter a valid course link.");
         }
 
         return normalized;
@@ -191,7 +191,7 @@ public class CourseService {
 
         return enrollments.stream()
                 .map(e -> userRepository.findById(e.getUserId())
-                        .orElseThrow(() -> new EntityNotFoundException("User not found")))
+                        .orElseThrow(() -> new EntityNotFoundException("This user could not be found.")))
                 .map(u -> UserDto.Response.builder()
                         .id(u.getId())
                         .uuid(u.getUuid())

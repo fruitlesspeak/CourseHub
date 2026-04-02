@@ -34,7 +34,7 @@ public class CourseController {
             @Valid @RequestBody CourseDto.CreateRequest req,
             HttpServletRequest httpRequest) {
         Integer professorId = sessionAuthService
-                .requireProfessor(httpRequest, "Only professors can manage courses.")
+                .requireProfessor(httpRequest, "Only professors can create, update, or delete courses.")
                 .userId();
         return ResponseEntity.status(HttpStatus.CREATED).body(courseService.create(req, professorId));
     }
@@ -107,7 +107,7 @@ public class CourseController {
             @Valid @RequestBody CourseDto.UpdateRequest req,
             HttpServletRequest httpRequest) {
         Integer professorId = sessionAuthService
-                .requireProfessor(httpRequest, "Only professors can manage courses.")
+                .requireProfessor(httpRequest, "Only professors can create, update, or delete courses.")
                 .userId();
         return ResponseEntity.ok(courseService.update(uuid, req, professorId));
     }
@@ -116,7 +116,7 @@ public class CourseController {
     @DeleteMapping("/{uuid}")
     public ResponseEntity<Void> delete(@PathVariable UUID uuid, HttpServletRequest httpRequest) {
         Integer professorId = sessionAuthService
-                .requireProfessor(httpRequest, "Only professors can manage courses.")
+                .requireProfessor(httpRequest, "Only professors can create, update, or delete courses.")
                 .userId();
         courseService.delete(uuid, professorId);
         return ResponseEntity.noContent().build();
@@ -137,7 +137,7 @@ public class CourseController {
     private Integer resolveStudentIdFromSession(HttpServletRequest httpRequest) {
         SessionAuthService.SessionUser sessionUser = sessionAuthService.requireAuthenticatedUser(httpRequest);
         if (sessionUser.role() != UserRole.STUDENT) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only students can enroll.");
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only students can enroll in courses.");
         }
         return sessionUser.userId();
     }

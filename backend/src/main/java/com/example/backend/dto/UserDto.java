@@ -11,16 +11,18 @@ public class UserDto {
 
     public static class CreateRequest {
 
-        @NotBlank @Email
+        @NotBlank(message = "Email is required.")
+        @Email(message = "Enter a valid email address.")
         private String email;
 
-        @NotBlank @Size(min = 8, message = "Password must be at least 8 characters")
+        @NotBlank(message = "Password is required.")
+        @Size(min = 8, message = "Password must be at least 8 characters.")
         private String password;
 
-        @NotBlank
+        @NotBlank(message = "First name is required.")
         private String firstName;
 
-        @NotBlank
+        @NotBlank(message = "Last name is required.")
         private String lastName;
 
         private boolean isProfessor = false;
@@ -47,7 +49,7 @@ public class UserDto {
 
     public static class UpdateRequest {
 
-        @Email
+        @Email(message = "Enter a valid email address.")
         private String  email;
         private String  firstName;
         private String  lastName;

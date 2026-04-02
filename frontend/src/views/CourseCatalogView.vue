@@ -158,6 +158,7 @@ import { ref, onMounted } from 'vue'
 import { useEnrollmentStore } from '@/stores/enrollmentStore'
 import DashboardLayout from '@/components/dashboard/DashboardLayout.vue'
 import CourseCard from '@/views/CourseCardView.vue'
+import { extractApiErrorStatus } from '@/utils/apiErrors'
 
 const store = useEnrollmentStore()
 
@@ -179,11 +180,11 @@ async function loadCourses(tag?: string) {
   try {
     await store.fetchCourses(tag ? { tag } : {})
   } catch (err: unknown) {
-    const status = getErrorStatus(err)
+    const status = extractApiErrorStatus(err)
     if (status === 401) {
-      error.value = 'You must be logged in to browse courses.'
+      error.value = 'Please sign in to browse courses.'
     } else {
-      error.value = 'Failed to load courses. Please try again.'
+      error.value = "We couldn't load the course list. Please try again."
     }
   }
 }
@@ -210,7 +211,7 @@ async function handleEnroll(courseUuid: string) {
     await store.enroll(courseUuid)
     showToast('Enrolled! You now have access to course materials.', 'success')
   } catch (err: unknown) {
-    const status = getErrorStatus(err)
+    const status = extractApiErrorStatus(err)
     if (status === 409) {
       // Already enrolled — just sync local state silently
       store.enrolledUuids.add(courseUuid)
@@ -218,11 +219,11 @@ async function handleEnroll(courseUuid: string) {
     } else if (status === 401) {
       error.value = 'Please log in to enroll in courses.'
     } else if (status === 403) {
-      showToast('You are not authorized to enroll in this course.', 'error')
+      showToast('Only students can enroll in courses.', 'error')
     } else if (status === 404) {
       showToast('Course not found — it may have been removed.', 'error')
     } else {
-      showToast('Enrollment failed. Please try again.', 'error')
+      showToast("We couldn't enroll you in this course. Please try again.", 'error')
     }
   }
 }
@@ -235,13 +236,6 @@ function showToast(message: string, variant: 'success' | 'error' | 'info') {
     variant,
     _t: setTimeout(() => { toast.value.visible = false }, 4000),
   }
-}
-
-function getErrorStatus(err: unknown): number | undefined {
-  if (!err || typeof err !== 'object' || !('response' in err)) return undefined
-  const response = err.response
-  if (!response || typeof response !== 'object' || !('status' in response)) return undefined
-  return typeof response.status === 'number' ? response.status : undefined
 }
 </script>
 

@@ -95,7 +95,7 @@ class RegisterControllerTest {
                                 }
                                 """))
                 .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.message").value("Email already in use"));
+                .andExpect(jsonPath("$.message").value("An account with this email already exists."));
 
         verify(userRepository).existsByEmail("demo@student.coursehub");
         verifyNoInteractions(passwordEncoder);

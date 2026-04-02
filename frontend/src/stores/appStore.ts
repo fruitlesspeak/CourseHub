@@ -26,13 +26,16 @@ export const useAppStore = defineStore("app", () => {
       const res = await fetch(`${normalizedApiBase}/hello`, {
         credentials: "include",
       });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      if (!res.ok) throw new Error("server_unavailable");
       const data = await res.text();
       setMessage(data);
     } catch (e) {
-      const errorMsg = e instanceof Error ? e.message : "Unknown error";
+      const errorMsg =
+        e instanceof Error && e.message === "server_unavailable"
+          ? "We couldn't reach the server. Please try again."
+          : "Something went wrong while contacting the server. Please try again.";
       setError(errorMsg);
-      setMessage("Failed to load");
+      setMessage("Unable to load data right now.");
     } finally {
       setLoading(false);
     }

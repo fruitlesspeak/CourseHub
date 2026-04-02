@@ -31,7 +31,7 @@ public class ImportantDateController {
             @Valid @RequestBody ImportantDateDto.CreateRequest req,
             HttpServletRequest httpRequest) {
         Integer professorId = sessionAuthService
-                .requireProfessor(httpRequest, "Only professors can manage important dates.")
+                .requireProfessor(httpRequest, "Only professors can add, update, or delete important dates.")
                 .userId();
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(importantDateService.create(courseId, req, professorId));
@@ -61,7 +61,7 @@ public class ImportantDateController {
             @Valid @RequestBody ImportantDateDto.UpdateRequest req,
             HttpServletRequest httpRequest) {
         Integer professorId = sessionAuthService
-                .requireProfessor(httpRequest, "Only professors can manage important dates.")
+                .requireProfessor(httpRequest, "Only professors can add, update, or delete important dates.")
                 .userId();
         return ResponseEntity.ok(importantDateService.update(id, req, professorId));
     }
@@ -72,7 +72,7 @@ public class ImportantDateController {
     @DeleteMapping("/api/important-dates/{id}")
     public ResponseEntity<Void> delete(@PathVariable Integer id, HttpServletRequest httpRequest) {
         Integer professorId = sessionAuthService
-                .requireProfessor(httpRequest, "Only professors can manage important dates.")
+                .requireProfessor(httpRequest, "Only professors can add, update, or delete important dates.")
                 .userId();
         importantDateService.delete(id, professorId);
         return ResponseEntity.noContent().build();
