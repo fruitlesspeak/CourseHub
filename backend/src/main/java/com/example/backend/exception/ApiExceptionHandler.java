@@ -10,6 +10,6 @@ public class ApiExceptionHandler {
     @ExceptionHandler(EmailAlreadyInUseException.class)
     public ResponseEntity<?> handleEmailConflict() {
         return ResponseEntity.status(HttpStatus.CONFLICT)
-                .body(Map.of("message", "Email already in use"));
+                .body(Map.of("message", "An account with this email already exists."));
     }
 }

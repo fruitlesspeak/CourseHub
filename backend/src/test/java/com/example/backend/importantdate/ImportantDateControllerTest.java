@@ -91,7 +91,7 @@ class ImportantDateControllerTest {
                         .contentType(MediaType.APPLICATION_JSON_VALUE)
                         .content(CREATE_PAYLOAD))
                 .andExpect(status().isUnauthorized())
-                .andExpect(status().reason("Authentication required."));
+                .andExpect(jsonPath("$.error").value("Please sign in to continue."));
 
         verifyNoInteractions(importantDateService);
     }
@@ -107,7 +107,7 @@ class ImportantDateControllerTest {
                         .contentType(MediaType.APPLICATION_JSON_VALUE)
                         .content(CREATE_PAYLOAD))
                 .andExpect(status().isForbidden())
-                .andExpect(status().reason("Only professors can manage important dates."));
+                .andExpect(jsonPath("$.error").value("Only professors can add, update, or delete important dates."));
 
         verifyNoInteractions(importantDateService);
     }
@@ -127,7 +127,7 @@ class ImportantDateControllerTest {
                                 }
                                 """))
                 .andExpect(status().isUnauthorized())
-                .andExpect(status().reason("Authentication required."));
+                .andExpect(jsonPath("$.error").value("Please sign in to continue."));
 
         verifyNoInteractions(importantDateService);
     }

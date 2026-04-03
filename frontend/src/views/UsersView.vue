@@ -195,6 +195,7 @@
 import { ref, onMounted } from 'vue'
 import { useUserStore } from '../stores/userStore'
 import type { User } from '../api/index'
+import { extractApiErrorMessage } from '@/utils/apiErrors'
 
 interface UserForm {
   firstName:   string
@@ -277,7 +278,7 @@ async function submitForm() {
     }
     closeModal()
   } catch (e: unknown) {
-    formError.value = extractError(e) ?? 'An error occurred.'
+    formError.value = extractApiErrorMessage(e) ?? "We couldn't save this user right now. Please review the details and try again."
   } finally {
     submitting.value = false
   }
@@ -292,7 +293,7 @@ async function doDelete() {
     await store.remove(deleteTarget.value.uuid)
     deleteTarget.value = null
   } catch (e: unknown) {
-    store.error = extractError(e) ?? 'Delete failed.'
+    store.error = extractApiErrorMessage(e) ?? "We couldn't delete this user right now. Please try again."
     deleteTarget.value = null
   } finally {
     submitting.value = false
@@ -301,14 +302,6 @@ async function doDelete() {
 
 const initials   = (u: User) => `${u.firstName?.[0] ?? ''}${u.lastName?.[0] ?? ''}`.toUpperCase()
 const formatDate = (d: string) => new Date(d).toLocaleDateString()
-
-function extractError(e: unknown): string | null {
-  if (e && typeof e === 'object' && 'response' in e) {
-    const resp = (e as { response?: { data?: { error?: string } } }).response
-    return resp?.data?.error ?? null
-  }
-  return null
-}
 </script>
 
 <style scoped>

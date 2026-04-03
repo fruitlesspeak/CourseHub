@@ -61,6 +61,7 @@
 import { computed, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/authStore'
+import { extractApiErrorMessage } from '@/utils/apiErrors'
 
 const router = useRouter()
 const route = useRoute()
@@ -98,12 +99,14 @@ const onSubmit = async () => {
     })
 
     if (!response.ok) {
+      const payload = await response.json().catch(() => null)
       if (response.status === 401) {
         errorMessage.value = 'Invalid email or password.'
-      } else if (response.status === 400) {
-        errorMessage.value = 'Please verify your input and try again.'
+      } else if (response.status === 422) {
+        errorMessage.value = extractApiErrorMessage({ response: { status: response.status, data: payload } })
+          ?? 'Please review your email and password and try again.'
       } else {
-        errorMessage.value = 'Unable to sign in right now. Please try again.'
+        errorMessage.value = "We couldn't sign you in right now. Please try again in a moment."
       }
       return
     }
@@ -121,7 +124,7 @@ const onSubmit = async () => {
 
     await router.push(authStore.defaultDashboardPath)
   } catch {
-    errorMessage.value = 'Unable to sign in right now. Please try again.'
+    errorMessage.value = "We couldn't sign you in right now. Please try again in a moment."
   } finally {
     isLoading.value = false
   }

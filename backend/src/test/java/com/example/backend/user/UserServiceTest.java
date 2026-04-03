@@ -85,7 +85,7 @@ class UserServiceTest {
 
         IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> userService.create(request));
 
-        assertEquals("Email already in use: taken@test.com", ex.getMessage());
+        assertEquals("An account with this email already exists.", ex.getMessage());
         verify(userRepository, never()).save(any(User.class));
     }
 
@@ -102,7 +102,7 @@ class UserServiceTest {
 
         IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> userService.create(request));
 
-        assertEquals("A professor cannot have a student_id.", ex.getMessage());
+        assertEquals("A professor account cannot have a student ID.", ex.getMessage());
         verify(userRepository, never()).save(any(User.class));
     }
 
@@ -137,7 +137,7 @@ class UserServiceTest {
 
         IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> userService.update(USER_UUID, request));
 
-        assertEquals("Email already in use: taken@test.com", ex.getMessage());
+        assertEquals("An account with this email already exists.", ex.getMessage());
         verify(userRepository, never()).save(any(User.class));
     }
 
@@ -150,7 +150,7 @@ class UserServiceTest {
 
         IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> userService.update(USER_UUID, request));
 
-        assertEquals("A professor cannot have a student_id.", ex.getMessage());
+        assertEquals("A professor account cannot have a student ID.", ex.getMessage());
         verify(userRepository, never()).save(any(User.class));
     }
 
@@ -181,7 +181,7 @@ class UserServiceTest {
 
         EntityNotFoundException ex = assertThrows(EntityNotFoundException.class, () -> userService.findByUuid(USER_UUID));
 
-        assertEquals("User not found: " + USER_UUID, ex.getMessage());
+        assertEquals("This user could not be found.", ex.getMessage());
     }
 
     private static User existingStudent() {

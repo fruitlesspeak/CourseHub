@@ -92,6 +92,7 @@ import DashboardLayout from '@/components/dashboard/DashboardLayout.vue'
 import { courseApi, enrollmentApi } from '@/api'
 import type { Course } from '@/api'
 import { parseTags } from '@/stores/enrollmentStore'
+import { extractApiErrorStatus } from '@/utils/apiErrors'
 
 const route = useRoute()
 const router = useRouter()
@@ -136,11 +137,11 @@ onMounted(async () => {
     course.value = courseRes.data
     enrolled.value = enrolledCourses.data.some((c: Course) => c.uuid === uuid)
   } catch (err: unknown) {
-    const status = getErrorStatus(err)
+    const status = extractApiErrorStatus(err)
     if (status === 404) {
       error.value = 'Course not found.'
     } else {
-      error.value = 'Failed to load course. Please try again.'
+      error.value = "We couldn't load this course right now. Please try again."
     }
   } finally {
     loading.value = false
@@ -154,11 +155,11 @@ async function handleEnroll() {
     await enrollmentApi.enroll(course.value.uuid)
     enrolled.value = true
   } catch (err: unknown) {
-    const status = getErrorStatus(err)
+    const status = extractApiErrorStatus(err)
     if (status === 409) {
       enrolled.value = true
     } else {
-      error.value = 'Enrollment failed. Please try again.'
+      error.value = "We couldn't enroll you in this course. Please try again."
     }
   } finally {
     enrolling.value = false
@@ -169,13 +170,6 @@ const formatDateTime = (isoDate: string) => new Date(isoDate).toLocaleString()
 
 const toCourseHref = (link: string) =>
   link.startsWith('www.') ? `https://${link}` : link
-
-function getErrorStatus(err: unknown): number | undefined {
-  if (!err || typeof err !== 'object' || !('response' in err)) return undefined
-  const response = err.response
-  if (!response || typeof response !== 'object' || !('status' in response)) return undefined
-  return typeof response.status === 'number' ? response.status : undefined
-}
 </script>
 
 <style scoped>

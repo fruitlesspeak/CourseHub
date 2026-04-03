@@ -27,7 +27,7 @@ public class UserService {
 
     public UserDto.Response create(UserDto.CreateRequest req) {
         if (userRepository.existsByEmail(req.getEmail())) {
-            throw new IllegalArgumentException("Email already in use: " + req.getEmail());
+            throw new IllegalArgumentException("An account with this email already exists.");
         }
         validateRoleConsistency(req.isProfessor(), req.getStudentId(), req.getProfessorId());
 
@@ -78,7 +78,7 @@ public class UserService {
 
         if (req.getEmail() != null && !req.getEmail().equals(user.getEmail())) {
             if (userRepository.existsByEmail(req.getEmail())) {
-                throw new IllegalArgumentException("Email already in use: " + req.getEmail());
+                throw new IllegalArgumentException("An account with this email already exists.");
             }
             user.setEmail(req.getEmail());
         }
@@ -103,12 +103,12 @@ public class UserService {
 
     private User getByUuid(UUID uuid) {
         return userRepository.findByUuid(uuid)
-                .orElseThrow(() -> new EntityNotFoundException("User not found: " + uuid));
+                .orElseThrow(() -> new EntityNotFoundException("This user could not be found."));
     }
 
     private void validateRoleConsistency(boolean isProfessor, String studentId, Integer professorId) {
         if (isProfessor && studentId != null) {
-            throw new IllegalArgumentException("A professor cannot have a student_id.");
+            throw new IllegalArgumentException("A professor account cannot have a student ID.");
         }
     }
 

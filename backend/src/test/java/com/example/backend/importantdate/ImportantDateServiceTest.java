@@ -95,7 +95,7 @@ class ImportantDateServiceTest {
                 () -> importantDateService.create(COURSE_ID, createRequest(), OTHER_PROFESSOR_ID)
         );
 
-        assertEquals("You can only manage important dates for your own courses.", ex.getMessage());
+        assertEquals("You can only manage important dates for courses you created.", ex.getMessage());
         verifyNoInteractions(userRepository);
         verify(importantDateRepository, never()).save(any(ImportantDate.class));
     }
@@ -113,7 +113,7 @@ class ImportantDateServiceTest {
                 () -> importantDateService.create(COURSE_ID, createRequest(), OWNER_PROFESSOR_ID)
         );
 
-        assertEquals("No professor found with id: " + OWNER_PROFESSOR_ID, ex.getMessage());
+        assertEquals("The selected professor could not be found.", ex.getMessage());
         verify(importantDateRepository, never()).save(any(ImportantDate.class));
     }
 
@@ -138,7 +138,7 @@ class ImportantDateServiceTest {
                 () -> importantDateService.findByCourse(COURSE_ID)
         );
 
-        assertEquals("Course not found: " + COURSE_ID, ex.getMessage());
+        assertEquals("This course could not be found.", ex.getMessage());
         verify(importantDateRepository, never()).findByCourseIdOrderByDueAtAsc(any());
     }
 
@@ -173,7 +173,7 @@ class ImportantDateServiceTest {
                 () -> importantDateService.delete(IMPORTANT_DATE_ID, OTHER_PROFESSOR_ID)
         );
 
-        assertEquals("You can only manage important dates for your own courses.", ex.getMessage());
+        assertEquals("You can only manage important dates for courses you created.", ex.getMessage());
         verify(importantDateRepository, never()).delete(any(ImportantDate.class));
     }
 

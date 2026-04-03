@@ -89,8 +89,8 @@ class AuthControllerTest {
                                                 }
                                                 """))
                                 .andExpect(status().isUnprocessableEntity())
-                                .andExpect(jsonPath("$.email").value("must be a well-formed email address"))
-                                .andExpect(jsonPath("$.password").value("size must be between 8 and 200"));
+                                .andExpect(jsonPath("$.email").value("Enter a valid email address."))
+                                .andExpect(jsonPath("$.password").value("Password must be between 8 and 200 characters."));
 
                 verifyNoInteractions(authService);
         }

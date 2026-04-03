@@ -115,32 +115,32 @@ public class ImportantDateService {
 
     private ImportantDate getById(Integer id) {
         return importantDateRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Important date not found: " + id));
+                .orElseThrow(() -> new EntityNotFoundException("This important date could not be found."));
     }
 
     private Course getCourse(Integer courseId) {
         return courseRepository.findById(courseId)
-                .orElseThrow(() -> new EntityNotFoundException("Course not found: " + courseId));
+                .orElseThrow(() -> new EntityNotFoundException("This course could not be found."));
     }
 
     private void ensureCourseExists(Integer courseId) {
         if (!courseRepository.existsById(courseId)) {
-            throw new EntityNotFoundException("Course not found: " + courseId);
+            throw new EntityNotFoundException("This course could not be found.");
         }
     }
 
     private void ensureProfessorExists(Integer professorId) {
         User user = userRepository.findById(professorId)
-                .orElseThrow(() -> new IllegalArgumentException("No professor found with id: " + professorId));
+                .orElseThrow(() -> new IllegalArgumentException("The selected professor could not be found."));
 
         if (!user.isProfessor()) {
-            throw new IllegalArgumentException("No professor found with id: " + professorId);
+            throw new IllegalArgumentException("The selected professor could not be found.");
         }
     }
 
     private static void ensureProfessorOwnsCourse(Course course, Integer requestingProfessorId) {
         if (!course.getProfessorId().equals(requestingProfessorId)) {
-            throw new CourseAccessDeniedException("You can only manage important dates for your own courses.");
+            throw new CourseAccessDeniedException("You can only manage important dates for courses you created.");
         }
     }
 
