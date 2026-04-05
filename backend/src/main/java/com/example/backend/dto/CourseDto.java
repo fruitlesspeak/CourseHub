@@ -12,20 +12,20 @@ public class CourseDto {
 
     public static class CreateRequest {
 
-        @NotBlank
-        @Size(max = 255)
+        @NotBlank(message = "Title is required.")
+        @Size(max = 255, message = "Title must be 255 characters or fewer.")
         private String title;
 
-        @NotBlank
-        @Size(max = 50)
+        @NotBlank(message = "Code is required.")
+        @Size(max = 50, message = "Code must be 50 characters or fewer.")
         private String code;
 
         private String description;
 
-        @Size(max = 1000)
+        @Size(max = 1000, message = "Link must be 1000 characters or fewer.")
         private String link;
 
-        @Size(max = 1000)
+        @Size(max = 1000, message = "Tags must be 1000 characters or fewer.")
         private String tags;
 
         private String material;
@@ -62,18 +62,18 @@ public class CourseDto {
 
     public static class UpdateRequest {
 
-        @Size(max = 255)
+        @Size(max = 255, message = "Title must be 255 characters or fewer.")
         private String  title;
 
-        @Size(max = 50)
+        @Size(max = 50, message = "Code must be 50 characters or fewer.")
         private String  code;
 
         private String  description;
 
-        @Size(max = 1000)
+        @Size(max = 1000, message = "Link must be 1000 characters or fewer.")
         private String  link;
 
-        @Size(max = 1000)
+        @Size(max = 1000, message = "Tags must be 1000 characters or fewer.")
         private String tags;
 
         private String material;

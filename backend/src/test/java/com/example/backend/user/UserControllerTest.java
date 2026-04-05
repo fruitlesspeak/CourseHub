@@ -78,7 +78,7 @@ class UserControllerTest {
     void getWithoutSessionReturns401() throws Exception {
         mockMvc.perform(get("/api/users/{uuid}", USER_UUID))
                 .andExpect(status().isUnauthorized())
-                .andExpect(status().reason("Authentication required."));
+                .andExpect(jsonPath("$.error").value("Please sign in to continue."));
 
         verifyNoInteractions(userService);
     }
@@ -93,7 +93,7 @@ class UserControllerTest {
 
         mockMvc.perform(get("/api/users/{uuid}", USER_UUID).session(session))
                 .andExpect(status().isForbidden())
-                .andExpect(status().reason("You can only access your own user profile."));
+                .andExpect(jsonPath("$.error").value("You can only view or update your own profile."));
 
         verify(userService).findUserIdByUuid(USER_UUID);
     }
@@ -115,7 +115,7 @@ class UserControllerTest {
                                 }
                                 """))
                 .andExpect(status().isForbidden())
-                .andExpect(status().reason("You can only access your own user profile."));
+                .andExpect(jsonPath("$.error").value("You can only view or update your own profile."));
     }
 
     @Test
@@ -126,7 +126,7 @@ class UserControllerTest {
 
         mockMvc.perform(get("/api/users").session(session))
                 .andExpect(status().isForbidden())
-                .andExpect(status().reason("User listing is not available."));
+                .andExpect(jsonPath("$.error").value("You do not have access to view the user list."));
 
         verifyNoInteractions(userService);
     }
@@ -149,7 +149,7 @@ class UserControllerTest {
                                 }
                                 """))
                 .andExpect(status().isForbidden())
-                .andExpect(status().reason("User creation is only available through registration."));
+                .andExpect(jsonPath("$.error").value("Accounts can only be created through the sign-up page."));
 
         verifyNoInteractions(userService);
     }
@@ -162,7 +162,7 @@ class UserControllerTest {
 
         mockMvc.perform(delete("/api/users/{uuid}", USER_UUID).session(session))
                 .andExpect(status().isForbidden())
-                .andExpect(status().reason("User deletion is not available."));
+                .andExpect(jsonPath("$.error").value("User accounts cannot be deleted here."));
 
         verifyNoInteractions(userService);
     }

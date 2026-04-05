@@ -208,6 +208,7 @@ import { courseApi } from '@/api'
 import { useCourseStore } from '@/stores/courseStore'
 import { useImportantDateStore } from '@/stores/importantDateStore'
 import { useAuthStore } from '@/stores/authStore'
+import { extractApiErrorMessage } from '@/utils/apiErrors'
 
 const route = useRoute()
 const router = useRouter()
@@ -263,16 +264,16 @@ const normalizeAndValidateLink = (rawLink: string): { normalized?: string; error
 
   const normalized = trimmed.startsWith('www.') ? `https://${trimmed}` : trimmed
   if (!normalized.startsWith('https://')) {
-    return { error: 'Link must start with https:// or www.' }
+    return { error: 'Enter a valid course link starting with https:// or www.' }
   }
 
   try {
     const parsed = new URL(normalized)
     if (parsed.protocol !== 'https:' || !parsed.hostname) {
-      return { error: 'Link is invalid.' }
+      return { error: 'Enter a valid course link.' }
     }
   } catch {
-    return { error: 'Link is invalid.' }
+    return { error: 'Enter a valid course link.' }
   }
 
   return { normalized }
@@ -286,7 +287,7 @@ const normalizeAndValidateDueDate = (rawDueDate: string): { iso?: string; error?
 
   const parsed = new Date(trimmed)
   if (Number.isNaN(parsed.getTime())) {
-    return { error: 'Due date is invalid.' }
+    return { error: 'Enter a valid due date and time.' }
   }
 
   return { iso: parsed.toISOString() }
@@ -332,7 +333,7 @@ const onSubmit = async () => {
       query: { courseCreated: '1' },
     })
   } catch (e: unknown) {
-    errorMessage.value = extractError(e) ?? 'Unable to save this course right now.'
+    errorMessage.value = extractApiErrorMessage(e) ?? "We couldn't save this course right now. Please try again."
   } finally {
     isSubmitting.value = false
   }
@@ -355,7 +356,7 @@ const onImportantDateSubmit = async () => {
   }
 
   if (courseId.value === null || !dueDateResult.iso) {
-    importantDateError.value = 'Course is not ready yet.'
+    importantDateError.value = 'Save the course before adding important dates.'
     return
   }
 
@@ -375,7 +376,7 @@ const onImportantDateSubmit = async () => {
 
     resetImportantDateForm()
   } catch (e: unknown) {
-    importantDateError.value = extractError(e) ?? 'Unable to save this important date right now.'
+    importantDateError.value = extractApiErrorMessage(e) ?? "We couldn't save this important date right now. Please try again."
   } finally {
     isSavingImportantDate.value = false
   }
@@ -415,7 +416,7 @@ const onDeleteImportantDate = async (id: number) => {
       resetImportantDateForm()
     }
   } catch (e: unknown) {
-    importantDateError.value = extractError(e) ?? 'Unable to delete this important date right now.'
+    importantDateError.value = extractApiErrorMessage(e) ?? "We couldn't delete this important date right now. Please try again."
   } finally {
     deletingImportantDateId.value = null
   }
@@ -443,7 +444,7 @@ onMounted(async () => {
     form.link = data.link ?? ''
     await importantDateStore.fetchByCourse(data.id)
   } catch (e: unknown) {
-    errorMessage.value = extractError(e) ?? 'Unable to load course details.'
+    errorMessage.value = extractApiErrorMessage(e) ?? "We couldn't load this course right now. Please try again."
   } finally {
     isLoadingCourse.value = false
   }
@@ -466,14 +467,6 @@ function toDateTimeLocal(iso: string | null): string {
 
 function formatDateTime(iso: string): string {
   return new Date(iso).toLocaleString()
-}
-
-function extractError(e: unknown): string | null {
-  if (e && typeof e === 'object' && 'response' in e) {
-    const response = (e as { response?: { data?: { error?: string; message?: string } } }).response
-    return response?.data?.error ?? response?.data?.message ?? null
-  }
-  return null
 }
 </script>
 

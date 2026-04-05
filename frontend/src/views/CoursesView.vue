@@ -150,6 +150,7 @@ import { ref, onMounted, watch } from 'vue'
 import { useCourseStore } from '../stores/courseStore'
 import { useUserStore }   from '../stores/userStore'
 import type { Course } from '../api/index'
+import { extractApiErrorMessage } from '@/utils/apiErrors'
 
 interface CourseForm {
   title:       string
@@ -218,7 +219,7 @@ async function submitForm() {
     }
     closeModal()
   } catch (e: unknown) {
-    formError.value = extractError(e) ?? 'An error occurred.'
+    formError.value = extractApiErrorMessage(e) ?? "We couldn't save this course right now. Please review the details and try again."
   } finally {
     submitting.value = false
   }
@@ -233,7 +234,7 @@ async function doDelete() {
     await courseStore.remove(deleteTarget.value.uuid)
     deleteTarget.value = null
   } catch (e: unknown) {
-    courseStore.error = extractError(e) ?? 'Delete failed.'
+    courseStore.error = extractApiErrorMessage(e) ?? "We couldn't delete this course right now. Please try again."
     deleteTarget.value = null
   } finally {
     submitting.value = false
@@ -241,14 +242,6 @@ async function doDelete() {
 }
 
 const formatDate = (d: string) => new Date(d).toLocaleDateString()
-
-function extractError(e: unknown): string | null {
-  if (e && typeof e === 'object' && 'response' in e) {
-    const resp = (e as { response?: { data?: { error?: string } } }).response
-    return resp?.data?.error ?? null
-  }
-  return null
-}
 </script>
 
 <style scoped>

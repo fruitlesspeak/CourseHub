@@ -83,6 +83,37 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+      - name: Install Railway CLI
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: npm install -g @railway/cli
+
+      - name: Redeploy backend on Railway
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: railway redeploy --service backend --yes
+
+      - name: Wait for backend health
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        shell: bash
+        run: |
+          for i in {1..30}; do
+            if curl -fsS https://backend-production-7c02.up.railway.app/actuator/health > /dev/null; then
+              echo "Backend is ready"
+              exit 0
+            fi
+            echo "Waiting for backend..."
+            sleep 10
+          done
+          echo "Backend did not become ready in time"
+          exit 1
+
+      - name: Redeploy frontend on Railway
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: railway redeploy --service frontend --yes
+
       # Summary of published images (only on push to main)
       - name: Output image info
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'

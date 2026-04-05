@@ -12,7 +12,7 @@ public class SessionAuthService {
 
     private static final String SESSION_USER_ID = "AUTH_USER_ID";
     private static final String SESSION_USER_ROLE = "AUTH_USER_ROLE";
-    private static final String AUTH_REQUIRED_MESSAGE = "Authentication required.";
+    private static final String AUTH_REQUIRED_MESSAGE = "Please sign in to continue.";
 
     public SessionUser requireAuthenticatedUser(HttpServletRequest httpRequest) {
         HttpSession session = httpRequest.getSession(false);

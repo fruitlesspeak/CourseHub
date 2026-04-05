@@ -64,6 +64,7 @@ import DashboardLayout from '@/components/dashboard/DashboardLayout.vue'
 import type { Course } from '@/api'
 import { useAuthStore } from '@/stores/authStore'
 import { useCourseStore } from '@/stores/courseStore'
+import { extractApiErrorMessage } from '@/utils/apiErrors'
 
 const route = useRoute()
 const router = useRouter()
@@ -91,7 +92,7 @@ const onDeleteCourse = async (uuid: Course['uuid']) => {
   try {
     await courseStore.remove(uuid)
   } catch (e: unknown) {
-    actionError.value = extractError(e) ?? 'Unable to delete this course right now.'
+    actionError.value = extractApiErrorMessage(e) ?? "We couldn't delete this course right now. Please try again."
   }
 }
 
@@ -138,14 +139,6 @@ const formatDateTime = (isoDate: string) => {
 
 const toCourseHref = (link: string) => {
   return link.startsWith('www.') ? `https://${link}` : link
-}
-
-function extractError(e: unknown): string | null {
-  if (e && typeof e === 'object' && 'response' in e) {
-    const response = (e as { response?: { data?: { error?: string; message?: string } } }).response
-    return response?.data?.error ?? response?.data?.message ?? null
-  }
-  return null
 }
 </script>
 
