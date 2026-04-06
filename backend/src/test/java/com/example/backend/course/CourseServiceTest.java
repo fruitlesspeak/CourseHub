@@ -6,9 +6,10 @@ import com.example.backend.entity.Enrollment;
 import com.example.backend.entity.User;
 import com.example.backend.exception.CourseAccessDeniedException;
 import com.example.backend.repository.CourseRepository;
+import com.example.backend.repository.EnrollmentRepository;
+import com.example.backend.repository.ReviewRepository;
 import com.example.backend.repository.UserRepository;
 import com.example.backend.service.CourseService;
-import com.example.backend.repository.EnrollmentRepository;
 import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -50,11 +51,14 @@ class CourseServiceTest {
     @Mock
     private EnrollmentRepository enrollmentRepository;
 
+    @Mock
+    private ReviewRepository reviewRepository;
+
     private CourseService courseService;
 
     @BeforeEach
     void setUp() {
-        courseService = new CourseService(courseRepository, userRepository, enrollmentRepository);
+        courseService = new CourseService(courseRepository, userRepository, enrollmentRepository, reviewRepository);
     }
 
     @Test
