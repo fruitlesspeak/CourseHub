@@ -67,6 +67,8 @@ function buildCourse(overrides: Partial<Course> = {}): Course {
     professorId: 7,
     createdAt: '2026-03-20T12:00:00Z',
     updatedAt: '2026-03-20T12:00:00Z',
+    avgRating: null,
+    reviewCount: 0,
     ...overrides,
   }
 }
