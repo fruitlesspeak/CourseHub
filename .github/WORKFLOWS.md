@@ -121,14 +121,18 @@ The repository must have **Packages** write permissions enabled for the `GITHUB_
 You can view workflow runs at:
 https://github.com/fruitlesspeak/CourseHub/actions
 
-### Branch Protection (Recommended)
+## Accessing Automatic Scan Reports
 
-To enforce CI passing before merging, configure branch protection rules for `main`:
+CourseHub uses SonarCloud automatic analysis. These scans are not stored as GitHub Actions artifacts.
 
-1. Go to **Settings** > **Branches** > **Add rule**
-2. Set branch name pattern: `main`
-3. Enable **Require status checks to pass before merging**
-4. Select required checks:
-   - `build-and-test` (Backend CI)
-   - `lint-test-build` (Frontend CI)
-   - `build-and-publish` (Docker Build)
+To access the report from GitHub:
+1. Create a pull request.
+2. Find the `SonarCloud Code Analysis` check.
+3. Click the SonarCloud link in the check result to open the full report.
+
+To access the report directly in SonarCloud:
+1. Open https://sonarcloud.io
+2. Navigate to the `fruitlesspeak_CourseHub` project.
+3. Open the latest analysis for the branch or pull request you want to review.
+
+The SonarCloud report includes detected issues, security hotspots, code smells, duplication, and quality gate status.
