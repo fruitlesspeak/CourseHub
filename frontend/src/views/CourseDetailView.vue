@@ -74,6 +74,70 @@
             </button>
           </div>
 
+          <!-- Reviews section -->
+          <section class="detail-section reviews-section">
+            <h3>Reviews</h3>
+
+            <!-- Submit form — enrolled students who haven't reviewed yet -->
+            <form v-if="enrolled && !hasReviewed" class="review-form" @submit.prevent="handleSubmitReview">
+              <p class="review-form-label">Leave a rating</p>
+              <div class="star-input">
+                <button
+                  v-for="n in 5"
+                  :key="n"
+                  type="button"
+                  class="star-btn"
+                  :class="n <= (hoverRating || draftRating) ? 'star-filled' : 'star-empty'"
+                  @mouseenter="hoverRating = n"
+                  @mouseleave="hoverRating = 0"
+                  @click="draftRating = n"
+                  :aria-label="`Rate ${n} out of 5`"
+                >★</button>
+              </div>
+              <textarea
+                v-model="draftComment"
+                class="review-textarea"
+                placeholder="Share your experience (optional)"
+                rows="3"
+              ></textarea>
+              <p v-if="reviewError" class="review-error">{{ reviewError }}</p>
+              <button
+                type="submit"
+                class="review-submit-btn"
+                :disabled="draftRating === 0 || submittingReview"
+              >
+                {{ submittingReview ? 'Submitting…' : 'Submit Review' }}
+              </button>
+            </form>
+
+            <p v-else-if="enrolled && hasReviewed" class="review-already">
+              You have already reviewed this course.
+            </p>
+
+            <!-- Reviews list -->
+            <div v-if="reviewsLoading" class="review-loading">Loading reviews…</div>
+            <div v-else-if="reviews.length === 0 && !enrolled" class="review-empty">
+              No reviews yet.
+            </div>
+            <ul v-else-if="reviews.length > 0" class="review-list">
+              <li v-for="review in reviews" :key="review.id" class="review-item">
+                <div class="review-header">
+                  <span class="review-author">{{ review.reviewerFirstName }} {{ review.reviewerLastName }}</span>
+                  <span class="review-stars">
+                    <span
+                      v-for="n in 5"
+                      :key="n"
+                      class="star"
+                      :class="n <= review.rating ? 'star-filled' : 'star-empty'"
+                    >★</span>
+                  </span>
+                  <span class="review-date">{{ formatDate(review.createdAt) }}</span>
+                </div>
+                <p v-if="review.comment" class="review-comment">{{ review.comment }}</p>
+              </li>
+            </ul>
+          </section>
+
           <div class="detail-footer">
             <router-link :to="backRoute" class="back-link">
               ← {{ backLabel }}
@@ -89,8 +153,8 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import DashboardLayout from '@/components/dashboard/DashboardLayout.vue'
-import { courseApi, enrollmentApi } from '@/api'
-import type { Course } from '@/api'
+import { courseApi, enrollmentApi, reviewApi } from '@/api'
+import type { Course, Review } from '@/api'
 import { parseTags } from '@/stores/enrollmentStore'
 import { extractApiErrorStatus } from '@/utils/apiErrors'
 
@@ -102,6 +166,15 @@ const loading = ref(false)
 const error = ref('')
 const enrolled = ref(false)
 const enrolling = ref(false)
+
+const reviews         = ref<Review[]>([])
+const reviewsLoading  = ref(false)
+const hasReviewed     = ref(false)
+const draftRating     = ref(0)
+const hoverRating     = ref(0)
+const draftComment    = ref('')
+const submittingReview = ref(false)
+const reviewError     = ref('')
 
 const BANDS = [
   'linear-gradient(135deg,#1e3a8a,#3b82f6)',
@@ -146,6 +219,20 @@ onMounted(async () => {
   } finally {
     loading.value = false
   }
+
+  // Load reviews independently so a failure here doesn't block the page
+  reviewsLoading.value = true
+  try {
+    const { data } = await reviewApi.getByCourse(uuid)
+    reviews.value = data
+    // Check if the current user already submitted a review
+    // We rely on the server to reject duplicate submissions; hasReviewed is
+    // a UX hint derived from the 409 response when submitting.
+  } catch {
+    // Non-fatal: reviews failing to load shouldn't block the course page
+  } finally {
+    reviewsLoading.value = false
+  }
 })
 
 async function handleEnroll() {
@@ -166,7 +253,36 @@ async function handleEnroll() {
   }
 }
 
+async function handleSubmitReview() {
+  if (!course.value || draftRating.value === 0) return
+  submittingReview.value = true
+  reviewError.value = ''
+  try {
+    const review = await reviewApi.submit(course.value.uuid, {
+      rating: draftRating.value,
+      comment: draftComment.value.trim() || undefined,
+    })
+    reviews.value.unshift(review.data)
+    hasReviewed.value = true
+    draftRating.value = 0
+    draftComment.value = ''
+  } catch (err: unknown) {
+    const status = extractApiErrorStatus(err)
+    if (status === 409) {
+      hasReviewed.value = true
+      reviewError.value = 'You have already reviewed this course.'
+    } else if (status === 403) {
+      reviewError.value = 'You must be enrolled in this course to leave a review.'
+    } else {
+      reviewError.value = "We couldn't submit your review. Please try again."
+    }
+  } finally {
+    submittingReview.value = false
+  }
+}
+
 const formatDateTime = (isoDate: string) => new Date(isoDate).toLocaleString()
+const formatDate = (isoDate: string) => new Date(isoDate).toLocaleDateString()
 
 const toCourseHref = (link: string) =>
   link.startsWith('www.') ? `https://${link}` : link
@@ -369,4 +485,127 @@ const toCourseHref = (link: string) =>
 }
 
 .back-link:hover { color: var(--color-text-primary); }
+
+/* ── Reviews ── */
+.reviews-section { gap: 0.75rem; }
+
+.review-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding: 0.85rem 1rem;
+  background: var(--color-bg-soft);
+  border: 1px solid var(--color-border);
+  border-radius: 0.65rem;
+}
+.review-form-label {
+  margin: 0;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+.star-input { display: flex; gap: 4px; }
+.star-btn {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+  transition: transform 0.1s;
+}
+.star-btn:hover { transform: scale(1.15); }
+.star-btn.star-filled { color: #f59e0b; }
+.star-btn.star-empty  { color: var(--color-border); }
+
+.review-textarea {
+  resize: vertical;
+  border: 1px solid var(--color-border);
+  border-radius: 0.5rem;
+  padding: 0.6rem 0.75rem;
+  font-size: 0.88rem;
+  color: var(--color-text-primary);
+  background: var(--color-bg-page);
+  font-family: inherit;
+  outline: none;
+}
+.review-textarea:focus {
+  border-color: var(--color-brand-500);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-brand-500) 15%, transparent);
+}
+.review-error {
+  margin: 0;
+  font-size: 0.82rem;
+  color: #b91c1c;
+}
+.review-submit-btn {
+  align-self: flex-start;
+  border: 0;
+  border-radius: 0.55rem;
+  padding: 0.45rem 1rem;
+  background: var(--color-brand-500);
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.88rem;
+  cursor: pointer;
+}
+.review-submit-btn:hover:not(:disabled) { background: var(--color-brand-600); }
+.review-submit-btn:disabled { opacity: 0.65; cursor: not-allowed; }
+
+.review-already {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--color-text-secondary);
+}
+.review-loading {
+  font-size: 0.85rem;
+  color: var(--color-text-secondary);
+}
+.review-empty {
+  font-size: 0.85rem;
+  color: var(--color-text-secondary);
+}
+
+.review-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+.review-item {
+  border: 1px solid var(--color-border);
+  border-radius: 0.65rem;
+  padding: 0.75rem 0.9rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+.review-header {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+.review-author {
+  font-weight: 600;
+  font-size: 0.88rem;
+  color: var(--color-text-primary);
+}
+.review-stars { display: flex; gap: 1px; }
+.star { font-size: 0.85rem; }
+.star-filled { color: #f59e0b; }
+.star-empty  { color: var(--color-border); }
+.review-date {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+  margin-left: auto;
+}
+.review-comment {
+  margin: 0;
+  font-size: 0.88rem;
+  color: var(--color-text-primary);
+  line-height: 1.55;
+}
 </style>

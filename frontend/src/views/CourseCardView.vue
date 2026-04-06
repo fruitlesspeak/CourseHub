@@ -27,6 +27,19 @@
         <span v-for="tag in tags" :key="tag" class="tag">{{ tag }}</span>
       </div>
 
+      <!-- Rating -->
+      <p v-if="course.reviewCount > 0" class="card-rating">
+        <span class="stars" :title="`${course.avgRating?.toFixed(1)} out of 5`">
+          <span
+            v-for="n in 5"
+            :key="n"
+            class="star"
+            :class="n <= Math.round(course.avgRating ?? 0) ? 'star-filled' : 'star-empty'"
+          >★</span>
+        </span>
+        <span class="rating-text">{{ course.avgRating?.toFixed(1) }} ({{ course.reviewCount }})</span>
+      </p>
+
       <!-- Due date -->
       <p v-if="course.dueDate" class="card-due">
         <svg viewBox="0 0 16 16" fill="none" width="12" height="12" aria-hidden="true">
@@ -226,6 +239,22 @@ const formattedDue = computed(() => {
   background: var(--color-bg-soft);
   color: var(--color-brand-600);
   border: 1px solid var(--color-border-muted);
+}
+
+/* ── Rating ── */
+.card-rating {
+  margin: 0.2rem 0 0;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+.stars { display: flex; gap: 1px; line-height: 1; }
+.star { font-size: 0.78rem; }
+.star-filled { color: #f59e0b; }
+.star-empty  { color: var(--color-border); }
+.rating-text {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
 }
 
 /* ── Due date ── */

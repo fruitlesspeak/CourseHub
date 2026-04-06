@@ -8,50 +8,100 @@
     <DashboardLayout
       role-label="Professor"
       default-name="Professor"
-      title="My Courses"
-      primary-action-text="Create New Course"
+      :title="activeTab === 'courses' ? 'My Courses' : 'Reviews'"
+      :primary-action-text="activeTab === 'courses' ? 'Create New Course' : ''"
       empty-message="You haven't created any courses yet."
       empty-action-text="Create Your First Course"
       @primary-action="onCreateCourse"
     >
       <template #content>
-        <div v-if="courseStore.loading" class="state loading">Loading courses...</div>
+        <!-- Tab bar -->
+        <div class="tab-bar">
+          <button
+            class="tab-btn"
+            :class="{ active: activeTab === 'courses' }"
+            type="button"
+            @click="activeTab = 'courses'"
+          >My Courses</button>
+          <button
+            class="tab-btn"
+            :class="{ active: activeTab === 'reviews' }"
+            type="button"
+            @click="onReviewsTab"
+          >Reviews</button>
+        </div>
 
-        <div v-else-if="courseStore.error" class="state error">{{ courseStore.error }}</div>
+        <!-- Courses tab -->
+        <template v-if="activeTab === 'courses'">
+          <div v-if="courseStore.loading" class="state loading">Loading courses...</div>
 
-        <div v-else-if="courseStore.courses.length" class="course-list">
-          <article v-for="course in courseStore.courses" :key="course.uuid" class="course-item">
-            <div class="course-main">
-              <h3>{{ course.title }}</h3>
-              <p class="course-code">{{ course.code }}</p>
-              <p v-if="course.description" class="course-desc">{{ course.description }}</p>
-              <a
-                v-if="course.link"
-                class="course-link"
-                :href="toCourseHref(course.link)"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                Open course link
-              </a>
-              <p v-if="course.tags" class="course-meta"><strong>Tags:</strong> {{ course.tags }}</p>
-              <p v-if="course.material" class="course-meta"><strong>Material:</strong> {{ course.material }}</p>
-              <p v-if="course.dueDate" class="course-meta">
-                <strong>Due:</strong> {{ formatDateTime(course.dueDate) }}
-              </p>
-              <div class="course-actions">
-                <button type="button" class="course-btn edit" @click="onEditCourse(course.uuid)">Edit</button>
-                <button type="button" class="course-btn delete" @click="onDeleteCourse(course.uuid)">Delete</button>
+          <div v-else-if="courseStore.error" class="state error">{{ courseStore.error }}</div>
+
+          <div v-else-if="courseStore.courses.length" class="course-list">
+            <article v-for="course in courseStore.courses" :key="course.uuid" class="course-item">
+              <div class="course-main">
+                <h3>{{ course.title }}</h3>
+                <p class="course-code">{{ course.code }}</p>
+                <p v-if="course.description" class="course-desc">{{ course.description }}</p>
+                <a
+                  v-if="course.link"
+                  class="course-link"
+                  :href="toCourseHref(course.link)"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Open course link
+                </a>
+                <p v-if="course.tags" class="course-meta"><strong>Tags:</strong> {{ course.tags }}</p>
+                <p v-if="course.material" class="course-meta"><strong>Material:</strong> {{ course.material }}</p>
+                <p v-if="course.dueDate" class="course-meta">
+                  <strong>Due:</strong> {{ formatDateTime(course.dueDate) }}
+                </p>
+                <div class="course-actions">
+                  <button type="button" class="course-btn edit" @click="onEditCourse(course.uuid)">Edit</button>
+                  <button type="button" class="course-btn delete" @click="onDeleteCourse(course.uuid)">Delete</button>
+                </div>
               </div>
-            </div>
-            <time class="created-at">{{ formatDate(course.createdAt) }}</time>
-          </article>
-        </div>
+              <time class="created-at">{{ formatDate(course.createdAt) }}</time>
+            </article>
+          </div>
 
-        <div v-else class="state empty">
-          <p>You haven't created any courses yet.</p>
-          <button class="create-first" type="button" @click="onCreateCourse">Create Your First Course</button>
-        </div>
+          <div v-else class="state empty">
+            <p>You haven't created any courses yet.</p>
+            <button class="create-first" type="button" @click="onCreateCourse">Create Your First Course</button>
+          </div>
+        </template>
+
+        <!-- Reviews tab -->
+        <template v-else>
+          <div v-if="reviewStore.loading" class="state loading">Loading reviews...</div>
+          <div v-else-if="reviewStore.error" class="state error">{{ reviewStore.error }}</div>
+          <div v-else-if="reviewStore.professorReviews.length === 0" class="state empty">
+            <p>No reviews yet for your courses.</p>
+          </div>
+          <ul v-else class="review-list">
+            <li
+              v-for="review in reviewStore.professorReviews"
+              :key="review.id"
+              class="review-item"
+            >
+              <div class="review-header">
+                <span class="review-course">{{ review.courseTitle }}</span>
+                <span class="review-stars">
+                  <span
+                    v-for="n in 5"
+                    :key="n"
+                    class="star"
+                    :class="n <= review.rating ? 'star-filled' : 'star-empty'"
+                  >★</span>
+                </span>
+                <time class="review-date">{{ formatDate(review.createdAt) }}</time>
+              </div>
+              <p class="review-author">{{ review.reviewerFirstName }} {{ review.reviewerLastName }}</p>
+              <p v-if="review.comment" class="review-comment">{{ review.comment }}</p>
+            </li>
+          </ul>
+        </template>
       </template>
     </DashboardLayout>
   </div>
@@ -64,12 +114,23 @@ import DashboardLayout from '@/components/dashboard/DashboardLayout.vue'
 import type { Course } from '@/api'
 import { useAuthStore } from '@/stores/authStore'
 import { useCourseStore } from '@/stores/courseStore'
+import { useReviewStore } from '@/stores/reviewStore'
 import { extractApiErrorMessage } from '@/utils/apiErrors'
 
 const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
 const courseStore = useCourseStore()
+const reviewStore = useReviewStore()
+
+const activeTab = ref<'courses' | 'reviews'>('courses')
+
+async function onReviewsTab() {
+  activeTab.value = 'reviews'
+  if (reviewStore.professorReviews.length === 0 && !reviewStore.loading) {
+    await reviewStore.fetchProfessorReviews()
+  }
+}
 
 const showCourseCreatedNotice = ref(route.query.courseCreated === '1')
 const actionError = ref('')
@@ -303,5 +364,79 @@ const toCourseHref = (link: string) => {
   .created-at {
     align-self: flex-start;
   }
+}
+
+/* ── Tab bar ── */
+.tab-bar {
+  display: flex;
+  gap: 0.25rem;
+  border-bottom: 1px solid var(--color-border);
+  margin-bottom: 1rem;
+}
+.tab-btn {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: 0.5rem 0.9rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  margin-bottom: -1px;
+  transition: color 0.15s, border-color 0.15s;
+}
+.tab-btn:hover  { color: var(--color-text-primary); }
+.tab-btn.active {
+  color: var(--color-brand-600);
+  border-bottom-color: var(--color-brand-500);
+}
+
+/* ── Review list (professor) ── */
+.review-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+.review-item {
+  border: 1px solid var(--color-border);
+  border-radius: 0.75rem;
+  padding: 0.8rem 0.95rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+.review-header {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+.review-course {
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--color-text-primary);
+}
+.review-stars { display: flex; gap: 1px; }
+.star { font-size: 0.85rem; }
+.star-filled { color: #f59e0b; }
+.star-empty  { color: var(--color-border); }
+.review-date {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+  margin-left: auto;
+}
+.review-author {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--color-text-secondary);
+}
+.review-comment {
+  margin: 0;
+  font-size: 0.88rem;
+  color: var(--color-text-primary);
+  line-height: 1.55;
 }
 </style>
