@@ -53,6 +53,24 @@ export interface Course {
   professorId: number
   createdAt:   string
   updatedAt:   string
+  avgRating:   number | null
+  reviewCount: number
+}
+
+export interface Review {
+  id:                number
+  rating:            number
+  comment:           string | null
+  reviewerFirstName: string
+  reviewerLastName:  string
+  courseId:          number
+  courseTitle:       string
+  createdAt:         string
+}
+
+export interface CreateReviewPayload {
+  rating:   number
+  comment?: string
 }
 
 export interface CreateCoursePayload {
@@ -185,6 +203,19 @@ export const importantDateApi = {
 
   remove:  (id: number) =>
     api.delete<void>(`/important-dates/${id}`),
+}
+
+// ── Reviews ───────────────────────────────────────────────────────────────────
+
+export const reviewApi = {
+  submit: (courseUuid: string, data: CreateReviewPayload) =>
+    api.post<Review>(`/courses/${courseUuid}/reviews`, data),
+
+  getByCourse: (courseUuid: string) =>
+    api.get<Review[]>(`/courses/${courseUuid}/reviews`),
+
+  getMyProfessorReviews: () =>
+    api.get<Review[]>('/courses/my-reviews'),
 }
 
 export default api

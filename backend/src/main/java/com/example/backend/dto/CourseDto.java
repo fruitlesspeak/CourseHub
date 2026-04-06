@@ -122,13 +122,15 @@ public class CourseDto {
         private OffsetDateTime         updatedAt;
         private Integer                enrolledCount;
         private List<UserDto.Response> students;
+        private Double                 avgRating;
+        private int                    reviewCount;
 
         public Response() {}
 
         public Response(Integer id, UUID uuid, String title, String code, String description, String link,
                         String tags, String material, OffsetDateTime dueDate, Integer professorId,
                         OffsetDateTime createdAt, OffsetDateTime updatedAt, Integer enrolledCount,
-                        List<UserDto.Response> students) {
+                        List<UserDto.Response> students, Double avgRating, int reviewCount) {
             this.id            = id;
             this.uuid          = uuid;
             this.title         = title;
@@ -143,6 +145,8 @@ public class CourseDto {
             this.updatedAt     = updatedAt;
             this.enrolledCount = enrolledCount;
             this.students      = students;
+            this.avgRating     = avgRating;
+            this.reviewCount   = reviewCount;
         }
 
         public Integer                getId()               { return id; }
@@ -159,6 +163,8 @@ public class CourseDto {
         public OffsetDateTime         getUpdatedAt()        { return updatedAt; }
         public Integer                getEnrolledCount()    { return enrolledCount; }
         public List<UserDto.Response> getStudents()         { return students; }
+        public Double                 getAvgRating()        { return avgRating; }
+        public int                    getReviewCount()      { return reviewCount; }
 
 
         public static Builder builder() { return new Builder(); }
@@ -178,6 +184,8 @@ public class CourseDto {
             private OffsetDateTime updatedAt;
             private Integer enrolledCount;
             private List<UserDto.Response> students;
+            private Double avgRating;
+            private int reviewCount;
 
             public Builder id(Integer v)               { this.id = v;            return this; }
             public Builder uuid(UUID v)                { this.uuid = v;          return this; }
@@ -192,6 +200,8 @@ public class CourseDto {
             public Builder createdAt(OffsetDateTime v) { this.createdAt = v;     return this; }
             public Builder updatedAt(OffsetDateTime v) { this.updatedAt = v;     return this; }
             public Builder enrolledCount(Integer v)    { this.enrolledCount = v; return this; }
+            public Builder avgRating(Double v)         { this.avgRating = v;     return this; }
+            public Builder reviewCount(int v)          { this.reviewCount = v;   return this; }
 
             public Builder students(List<UserDto.Response> v) {
                 this.students = v;
@@ -200,7 +210,7 @@ public class CourseDto {
 
             public Response build() {
                 return new Response(id, uuid, title, code, description, link, tags, material, dueDate,
-                        professorId, createdAt, updatedAt, enrolledCount, students);
+                        professorId, createdAt, updatedAt, enrolledCount, students, avgRating, reviewCount);
             }
         }
     }

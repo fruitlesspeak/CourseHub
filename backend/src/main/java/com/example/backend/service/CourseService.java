@@ -7,6 +7,7 @@ import com.example.backend.entity.Enrollment;
 import com.example.backend.exception.CourseAccessDeniedException;
 import com.example.backend.repository.CourseRepository;
 import com.example.backend.repository.EnrollmentRepository;
+import com.example.backend.repository.ReviewRepository;
 import com.example.backend.repository.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.stereotype.Service;
@@ -22,14 +23,17 @@ import java.util.UUID;
 @Transactional
 public class CourseService {
 
-    private final CourseRepository courseRepository;
-    private final UserRepository   userRepository;
+    private final CourseRepository     courseRepository;
+    private final UserRepository       userRepository;
     private final EnrollmentRepository enrollmentRepository;
+    private final ReviewRepository     reviewRepository;
 
-    public CourseService(CourseRepository courseRepository, UserRepository userRepository, EnrollmentRepository enrollmentRepository) {
-        this.courseRepository = courseRepository;
-        this.userRepository   = userRepository;
+    public CourseService(CourseRepository courseRepository, UserRepository userRepository,
+                         EnrollmentRepository enrollmentRepository, ReviewRepository reviewRepository) {
+        this.courseRepository     = courseRepository;
+        this.userRepository       = userRepository;
         this.enrollmentRepository = enrollmentRepository;
+        this.reviewRepository     = reviewRepository;
     }
 
     // ── Create ─   ───────────────────────────────────────────────────────────────
@@ -211,6 +215,8 @@ public class CourseService {
 
     private CourseDto.Response toResponse(Course c) {
         List<UserDto.Response> students = getStudentsForCourse(c.getId());
+        Double avgRating  = reviewRepository.findAvgRatingByCourseId(c.getId());
+        int    reviewCount = (int) reviewRepository.countByCourseId(c.getId());
         return CourseDto.Response.builder()
                 .id(c.getId())
                 .uuid(c.getUuid())
@@ -226,6 +232,8 @@ public class CourseService {
                 .updatedAt(c.getUpdatedAt())
                 .students(students)
                 .enrolledCount(students.size())
+                .avgRating(avgRating)
+                .reviewCount(reviewCount)
                 .build();
     }
 }
