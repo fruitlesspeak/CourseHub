@@ -1,9 +1,7 @@
 package com.example.backend.controller;
 
-import com.example.backend.dto.CourseDto;
+import com.example.backend.dto.ReviewDto;
 import com.example.backend.entity.UserRole;
-import com.example.backend.service.CourseService;
-import com.example.backend.service.EnrollmentService;
 import com.example.backend.service.ReviewService;
 import com.example.backend.service.SessionAuthService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -13,54 +11,62 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.util.*;
+import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/courses")
 public class ReviewController {
 
-    private final ReviewService reviewService;
-    private final CourseService courseService;
+    private final ReviewService      reviewService;
     private final SessionAuthService sessionAuthService;
-    private final EnrollmentService enrollmentService;
- 
 
-    public ReviewController(ReviewService reviewService, CourseService courseService, SessionAuthService sessionAuthService,
-            EnrollmentService enrollmentService) {
-        this.reviewService = reviewService;
-        this.courseService = courseService;
+    public ReviewController(ReviewService reviewService, SessionAuthService sessionAuthService) {
+        this.reviewService      = reviewService;
         this.sessionAuthService = sessionAuthService;
-        this.enrollmentService = enrollmentService;
     }
 
-    /** POST /api/courses/{uuid}/reviews */
-    @PostMapping
-    public ResponseEntity<ReviewDto.Response> create(
-            @Valid @RequestBody CourseDto.CreateRequest req,
+    /** POST /api/courses/{uuid}/reviews — enrolled student submits a review */
+    @PostMapping("/{uuid}/reviews")
+    public ResponseEntity<ReviewDto.Response> submit(
+            @PathVariable UUID uuid,
+            @Valid @RequestBody ReviewDto.CreateRequest req,
             HttpServletRequest httpRequest) {
-        Integer professorId = sessionAuthService
-                .requireProfessor(httpRequest, "Only professors can create, update, or delete courses.")
-                .userId();
-        return ResponseEntity.status(HttpStatus.CREATED).body(courseService.create(req, professorId));
+
+        Integer studentId = resolveStudentId(httpRequest);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(reviewService.submit(req, studentId, uuid));
     }
 
-    /** GET /api/courses/{uuid}/reviews */
-    @GetMapping
-    public ResponseEntity<List<CourseDto.Response>> list(
-            @RequestParam(required = false) String title,
-            @RequestParam(required = false) Integer professorId,
-            @RequestParam(required = false) String tag) {
+    /** GET /api/courses/{uuid}/reviews — list reviews for a course */
+    @GetMapping("/{uuid}/reviews")
+    public ResponseEntity<List<ReviewDto.Response>> listByCourse(
+            @PathVariable UUID uuid,
+            HttpServletRequest httpRequest) {
 
-        List<CourseDto.Response> result;
-        if (tag != null && !tag.isBlank())
-            result = courseService.findByTag(tag);
-        else if (title != null && !title.isBlank())
-            result = courseService.search(title);
-        else if (professorId != null)
-            result = courseService.findByProfessor(professorId);
-        else
-            result = courseService.findAll();
+        sessionAuthService.requireAuthenticatedUser(httpRequest);
+        return ResponseEntity.ok(reviewService.findByCourse(uuid));
+    }
 
-        return ResponseEntity.ok(result);
+    /** GET /api/courses/my-reviews — professor sees reviews across their courses */
+    @GetMapping("/my-reviews")
+    public ResponseEntity<List<ReviewDto.Response>> listForProfessor(
+            HttpServletRequest httpRequest) {
+
+        Integer professorId = sessionAuthService
+                .requireProfessor(httpRequest, "Only professors can access this endpoint.")
+                .userId();
+        return ResponseEntity.ok(reviewService.findByProfessor(professorId));
+    }
+
+    // ── Helpers ───────────────────────────────────────────────────────────────
+
+    private Integer resolveStudentId(HttpServletRequest httpRequest) {
+        SessionAuthService.SessionUser sessionUser =
+                sessionAuthService.requireAuthenticatedUser(httpRequest);
+        if (sessionUser.role() != UserRole.STUDENT) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only students can submit reviews.");
+        }
+        return sessionUser.userId();
     }
 }
