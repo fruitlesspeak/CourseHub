@@ -28,3 +28,13 @@ Thumbs.db
 # JVM crash artifacts
 hs_err_pid*.log
 replay_pid*.log
+
+# Load testing artifacts
+.dist/
+load-tests/results/
+*.jtl
+*.jmeter.log
+backend-run.out.log
+backend-run.err.log
+jmeter.log
+temp/

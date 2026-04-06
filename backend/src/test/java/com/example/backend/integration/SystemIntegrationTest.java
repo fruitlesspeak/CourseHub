@@ -13,6 +13,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.example.backend.entity.User;
 import com.example.backend.repository.CourseRepository;
 import com.example.backend.repository.EnrollmentRepository;
+import com.example.backend.repository.ImportantDateRepository;
 import com.example.backend.repository.UserRepository;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -20,10 +21,8 @@ import com.jayway.jsonpath.JsonPath;
 import jakarta.transaction.Transactional;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
@@ -48,6 +47,12 @@ public class SystemIntegrationTest {
     
     @Autowired
     private EnrollmentRepository enrollmentRepository;
+
+    @Autowired
+    private ImportantDateRepository importantDateRepository;
+
+    private record CreatedCourse(Integer id, String uuid) {
+    }
 
     /*
      * Helper: Login and obtain session
@@ -89,6 +94,68 @@ public class SystemIntegrationTest {
                 .andExpect(status().isCreated());
 
         return loginAndGetSession(email, password);
+    }
+
+    private CreatedCourse createCourse(MockHttpSession session,
+                                       String title,
+                                       String code,
+                                       String tags,
+                                       String material) throws Exception {
+        String courseRequest = """
+                {
+                    "title": "%s",
+                    "code": "%s",
+                    "tags": %s,
+                    "material": %s
+                }
+                """.formatted(title, code, toJsonString(tags), toJsonString(material));
+
+        MvcResult createResult = mockMvc.perform(post("/api/courses")
+                        .session(session)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(courseRequest))
+                .andExpect(status().isCreated())
+                .andReturn();
+
+        String responseBody = createResult.getResponse().getContentAsString();
+        return new CreatedCourse(
+                JsonPath.read(responseBody, "$.id"),
+                JsonPath.read(responseBody, "$.uuid")
+        );
+    }
+
+    private Integer createImportantDate(MockHttpSession session,
+                                        Integer courseId,
+                                        String title,
+                                        String description,
+                                        String dueAt) throws Exception {
+        String importantDateRequest = """
+                {
+                    "title": "%s",
+                    "description": "%s",
+                    "dueAt": "%s"
+                }
+                """.formatted(title, description, dueAt);
+
+        MvcResult createResult = mockMvc.perform(post("/api/courses/{courseId}/important-dates", courseId)
+                        .session(session)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(importantDateRequest))
+                .andExpect(status().isCreated())
+                .andReturn();
+
+        return JsonPath.read(createResult.getResponse().getContentAsString(), "$.id");
+    }
+
+    private static String uniqueEmail(String prefix) {
+        return prefix + "-" + UUID.randomUUID() + "@test.com";
+    }
+
+    private static String toJsonString(String value) {
+        if (value == null) {
+            return "null";
+        }
+        return "\"" + value.replace("\\", "\\\\").replace("\"", "\\\"") + "\"";
     }
 
 
@@ -660,5 +727,346 @@ public class SystemIntegrationTest {
                 .andExpect(jsonPath("$.code").exists());
 
         assertEquals(beforeCount, courseRepository.findAll().size());
+    }
+
+    // ============================================================
+    // TEST 15 — Student discovery, enrollment, and content access
+    // ============================================================
+    @Test
+    void studentCanDiscoverEnrollAccessContentAndUnenroll() throws Exception {
+        MockHttpSession professorSession = registerAndLogin(
+                uniqueEmail("prof-discovery"),
+                "password123",
+                "Discover",
+                "Professor",
+                "PROFESSOR");
+        CreatedCourse createdCourse = createCourse(
+                professorSession,
+                "Distributed Systems",
+                "COMP4350",
+                "systems,distributed",
+                "Week 1 notes"
+        );
+
+        MockHttpSession studentSession = registerAndLogin(
+                uniqueEmail("student-discovery"),
+                "password123",
+                "Discovery",
+                "Student",
+                "STUDENT");
+        Integer studentId = (Integer) studentSession.getAttribute("AUTH_USER_ID");
+
+        mockMvc.perform(get("/api/courses").session(studentSession))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].uuid").value(createdCourse.uuid()))
+                .andExpect(jsonPath("$[0].title").value("Distributed Systems"));
+
+        mockMvc.perform(get("/api/courses")
+                        .param("tag", "distributed")
+                        .session(studentSession))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].uuid").value(createdCourse.uuid()))
+                .andExpect(jsonPath("$[0].tags").value("systems,distributed"));
+
+        mockMvc.perform(get("/api/courses/{uuid}", createdCourse.uuid())
+                        .session(studentSession))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.uuid").value(createdCourse.uuid()))
+                .andExpect(jsonPath("$.material").value("Week 1 notes"));
+
+        mockMvc.perform(post("/api/courses/{uuid}/enroll", createdCourse.uuid())
+                        .session(studentSession))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.uuid").value(createdCourse.uuid()));
+
+        assertTrue(enrollmentRepository.existsByUserIdAndCourseIdAndIsActiveTrue(studentId, createdCourse.id()));
+
+        mockMvc.perform(get("/api/courses/my-courses")
+                        .session(studentSession))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].uuid").value(createdCourse.uuid()))
+                .andExpect(jsonPath("$[0].title").value("Distributed Systems"));
+
+        mockMvc.perform(get("/api/courses/{uuid}/content", createdCourse.uuid())
+                        .session(studentSession))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.material").value("Week 1 notes"));
+
+        mockMvc.perform(delete("/api/courses/{uuid}/enroll", createdCourse.uuid())
+                        .session(studentSession))
+                .andExpect(status().isNoContent());
+
+        assertFalse(enrollmentRepository.existsByUserIdAndCourseIdAndIsActiveTrue(studentId, createdCourse.id()));
+
+        mockMvc.perform(get("/api/courses/{uuid}/content", createdCourse.uuid())
+                        .session(studentSession))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.error").value("You must be enrolled to access course materials."));
+    }
+
+    // ============================================================
+    // TEST 16 — Student-only enrollment endpoints reject others
+    // ============================================================
+    @Test
+    void studentOnlyEnrollmentEndpointsRejectProfessorAndAnonymousUsers() throws Exception {
+        MockHttpSession professorSession = registerAndLogin(
+                uniqueEmail("prof-enroll-guard"),
+                "password123",
+                "Enroll",
+                "Professor",
+                "PROFESSOR");
+        CreatedCourse createdCourse = createCourse(
+                professorSession,
+                "Operating Systems",
+                "COMP3430",
+                "systems,os",
+                "Kernel notes"
+        );
+
+        mockMvc.perform(post("/api/courses/{uuid}/enroll", createdCourse.uuid())
+                        .session(professorSession))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.error").value("Only students can enroll in courses."));
+
+        mockMvc.perform(post("/api/courses/{uuid}/enroll", createdCourse.uuid()))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.error").value("Please sign in to continue."));
+    }
+
+    // ============================================================
+    // TEST 17 — Important date CRUD integration pipeline
+    // ============================================================
+    @Test
+    void ownerProfessorCanManageImportantDatesThroughCrudFlow() throws Exception {
+        MockHttpSession professorSession = registerAndLogin(
+                uniqueEmail("prof-important-dates"),
+                "password123",
+                "Dates",
+                "Professor",
+                "PROFESSOR");
+        CreatedCourse createdCourse = createCourse(
+                professorSession,
+                "Software Testing",
+                "COMP4220",
+                "testing,qa",
+                "Mutation testing guide"
+        );
+
+        Integer importantDateId = createImportantDate(
+                professorSession,
+                createdCourse.id(),
+                "Sprint Demo",
+                "Bring final checklist",
+                "2026-05-01T15:00:00Z"
+        );
+
+        mockMvc.perform(get("/api/important-dates")
+                        .param("courseId", createdCourse.id().toString())
+                        .session(professorSession))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].id").value(importantDateId))
+                .andExpect(jsonPath("$[0].title").value("Sprint Demo"));
+
+        mockMvc.perform(get("/api/important-dates/{id}", importantDateId)
+                        .session(professorSession))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.courseId").value(createdCourse.id()))
+                .andExpect(jsonPath("$.description").value("Bring final checklist"));
+
+        mockMvc.perform(patch("/api/important-dates/{id}", importantDateId)
+                        .session(professorSession)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                    "title": "Sprint Demo Updated",
+                                    "description": "Bring the release checklist",
+                                    "dueAt": "2026-05-02T16:30:00Z"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.title").value("Sprint Demo Updated"))
+                .andExpect(jsonPath("$.description").value("Bring the release checklist"));
+
+        mockMvc.perform(delete("/api/important-dates/{id}", importantDateId)
+                        .session(professorSession))
+                .andExpect(status().isNoContent());
+
+        assertTrue(importantDateRepository.findById(importantDateId).isEmpty());
+    }
+
+    // ============================================================
+    // TEST 18 — Important date authz and not-found contracts
+    // ============================================================
+    @Test
+    void importantDateAuthorizationAndNotFoundContractsHold() throws Exception {
+        MockHttpSession ownerProfessorSession = registerAndLogin(
+                uniqueEmail("prof-important-owner"),
+                "password123",
+                "Owner",
+                "Professor",
+                "PROFESSOR");
+        CreatedCourse createdCourse = createCourse(
+                ownerProfessorSession,
+                "Advanced Databases",
+                "COMP4510",
+                "databases,sql",
+                "Relational algebra notes"
+        );
+        Integer importantDateId = createImportantDate(
+                ownerProfessorSession,
+                createdCourse.id(),
+                "Schema Review",
+                "Bring the ERD",
+                "2026-05-08T14:00:00Z"
+        );
+
+        MockHttpSession otherProfessorSession = registerAndLogin(
+                uniqueEmail("prof-important-other"),
+                "password123",
+                "Other",
+                "Professor",
+                "PROFESSOR");
+        MockHttpSession studentSession = registerAndLogin(
+                uniqueEmail("student-important"),
+                "password123",
+                "Important",
+                "Student",
+                "STUDENT");
+
+        mockMvc.perform(patch("/api/important-dates/{id}", importantDateId)
+                        .session(otherProfessorSession)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                    "title": "Unauthorized update"
+                                }
+                                """))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.error").value("You can only manage important dates for courses you created."));
+
+        mockMvc.perform(delete("/api/important-dates/{id}", importantDateId)
+                        .session(otherProfessorSession))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.error").value("You can only manage important dates for courses you created."));
+
+        mockMvc.perform(post("/api/courses/{courseId}/important-dates", createdCourse.id())
+                        .session(studentSession)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                    "title": "Student attempt",
+                                    "description": "Should fail",
+                                    "dueAt": "2026-05-10T10:00:00Z"
+                                }
+                                """))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.error").value("Only professors can add, update, or delete important dates."));
+
+        mockMvc.perform(patch("/api/important-dates/{id}", importantDateId)
+                        .session(studentSession)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                    "title": "Student patch"
+                                }
+                                """))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.error").value("Only professors can add, update, or delete important dates."));
+
+        mockMvc.perform(delete("/api/important-dates/{id}", importantDateId)
+                        .session(studentSession))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.error").value("Only professors can add, update, or delete important dates."));
+
+        mockMvc.perform(get("/api/important-dates/{id}", 999999)
+                        .session(ownerProfessorSession))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error").value("This important date could not be found."));
+
+        mockMvc.perform(post("/api/courses/{courseId}/important-dates", 999999)
+                        .session(ownerProfessorSession)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                    "title": "Missing course",
+                                    "description": "Should fail",
+                                    "dueAt": "2026-05-10T10:00:00Z"
+                                }
+                                """))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error").value("This course could not be found."));
+    }
+
+    // ============================================================
+    // TEST 19 — Student dashboard API flow integration
+    // ============================================================
+    @Test
+    void studentDashboardApiFlowReflectsEnrollmentAndImportantDates() throws Exception {
+        MockHttpSession professorSession = registerAndLogin(
+                uniqueEmail("prof-dashboard"),
+                "password123",
+                "Dashboard",
+                "Professor",
+                "PROFESSOR");
+        CreatedCourse createdCourse = createCourse(
+                professorSession,
+                "Requirements Engineering",
+                "COMP4520",
+                "requirements,design",
+                "Course handbook"
+        );
+        Integer importantDateId = createImportantDate(
+                professorSession,
+                createdCourse.id(),
+                "Workshop",
+                "Bring the backlog",
+                "2026-05-12T09:30:00Z"
+        );
+
+        MockHttpSession studentSession = registerAndLogin(
+                uniqueEmail("student-dashboard"),
+                "password123",
+                "Dashboard",
+                "Student",
+                "STUDENT");
+        Integer studentId = (Integer) studentSession.getAttribute("AUTH_USER_ID");
+
+        mockMvc.perform(post("/api/courses/{uuid}/enroll", createdCourse.uuid())
+                        .session(studentSession))
+                .andExpect(status().isCreated());
+
+        assertTrue(enrollmentRepository.existsByUserIdAndCourseIdAndIsActiveTrue(studentId, createdCourse.id()));
+
+        mockMvc.perform(get("/api/courses/my-courses")
+                        .session(studentSession))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].uuid").value(createdCourse.uuid()))
+                .andExpect(jsonPath("$[0].material").value("Course handbook"));
+
+        mockMvc.perform(get("/api/important-dates")
+                        .param("courseId", createdCourse.id().toString())
+                        .session(studentSession))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].id").value(importantDateId))
+                .andExpect(jsonPath("$[0].title").value("Workshop"));
+
+        mockMvc.perform(get("/api/courses/{uuid}/content", createdCourse.uuid())
+                        .session(studentSession))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.material").value("Course handbook"));
+
+        mockMvc.perform(delete("/api/courses/{uuid}/enroll", createdCourse.uuid())
+                        .session(studentSession))
+                .andExpect(status().isNoContent());
+
+        mockMvc.perform(get("/api/courses/my-courses")
+                        .session(studentSession))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isEmpty());
+
+        mockMvc.perform(get("/api/courses/{uuid}/content", createdCourse.uuid())
+                        .session(studentSession))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.error").value("You must be enrolled to access course materials."));
     }
 }
