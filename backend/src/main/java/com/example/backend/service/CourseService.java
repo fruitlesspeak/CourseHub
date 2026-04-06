@@ -215,6 +215,8 @@ public class CourseService {
 
     private CourseDto.Response toResponse(Course c) {
         List<UserDto.Response> students = getStudentsForCourse(c.getId());
+        Double avgRating  = reviewRepository.findAvgRatingByCourseId(c.getId());
+        int    reviewCount = (int) reviewRepository.countByCourseId(c.getId());
         return CourseDto.Response.builder()
                 .id(c.getId())
                 .uuid(c.getUuid())
@@ -230,6 +232,8 @@ public class CourseService {
                 .updatedAt(c.getUpdatedAt())
                 .students(students)
                 .enrolledCount(students.size())
+                .avgRating(avgRating)
+                .reviewCount(reviewCount)
                 .build();
     }
 }
