@@ -1,9 +1,10 @@
 package com.example.backend;
 
-import com.example.backend.repository.UserRepository;
 import com.example.backend.repository.CourseRepository;
-import com.example.backend.repository.ImportantDateRepository;
 import com.example.backend.repository.EnrollmentRepository;
+import com.example.backend.repository.ImportantDateRepository;
+import com.example.backend.repository.ReviewRepository;
+import com.example.backend.repository.UserRepository;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -28,6 +29,9 @@ class BackendApplicationTests {
 
     @MockBean
     private EnrollmentRepository enrollmentRepository;
+
+    @MockBean
+    private ReviewRepository reviewRepository;
 
     @Test
     void contextLoads() {
