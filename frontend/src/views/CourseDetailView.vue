@@ -74,6 +74,70 @@
             </button>
           </div>
 
+          <!-- Reviews section -->
+          <section class="detail-section reviews-section">
+            <h3>Reviews</h3>
+
+            <!-- Submit form — enrolled students who haven't reviewed yet -->
+            <form v-if="enrolled && !hasReviewed" class="review-form" @submit.prevent="handleSubmitReview">
+              <p class="review-form-label">Leave a rating</p>
+              <div class="star-input">
+                <button
+                  v-for="n in 5"
+                  :key="n"
+                  type="button"
+                  class="star-btn"
+                  :class="n <= (hoverRating || draftRating) ? 'star-filled' : 'star-empty'"
+                  @mouseenter="hoverRating = n"
+                  @mouseleave="hoverRating = 0"
+                  @click="draftRating = n"
+                  :aria-label="`Rate ${n} out of 5`"
+                >★</button>
+              </div>
+              <textarea
+                v-model="draftComment"
+                class="review-textarea"
+                placeholder="Share your experience (optional)"
+                rows="3"
+              ></textarea>
+              <p v-if="reviewError" class="review-error">{{ reviewError }}</p>
+              <button
+                type="submit"
+                class="review-submit-btn"
+                :disabled="draftRating === 0 || submittingReview"
+              >
+                {{ submittingReview ? 'Submitting…' : 'Submit Review' }}
+              </button>
+            </form>
+
+            <p v-else-if="enrolled && hasReviewed" class="review-already">
+              You have already reviewed this course.
+            </p>
+
+            <!-- Reviews list -->
+            <div v-if="reviewsLoading" class="review-loading">Loading reviews…</div>
+            <div v-else-if="reviews.length === 0 && !enrolled" class="review-empty">
+              No reviews yet.
+            </div>
+            <ul v-else-if="reviews.length > 0" class="review-list">
+              <li v-for="review in reviews" :key="review.id" class="review-item">
+                <div class="review-header">
+                  <span class="review-author">{{ review.reviewerFirstName }} {{ review.reviewerLastName }}</span>
+                  <span class="review-stars">
+                    <span
+                      v-for="n in 5"
+                      :key="n"
+                      class="star"
+                      :class="n <= review.rating ? 'star-filled' : 'star-empty'"
+                    >★</span>
+                  </span>
+                  <span class="review-date">{{ formatDate(review.createdAt) }}</span>
+                </div>
+                <p v-if="review.comment" class="review-comment">{{ review.comment }}</p>
+              </li>
+            </ul>
+          </section>
+
           <div class="detail-footer">
             <router-link :to="backRoute" class="back-link">
               ← {{ backLabel }}
@@ -89,8 +153,8 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import DashboardLayout from '@/components/dashboard/DashboardLayout.vue'
-import { courseApi, enrollmentApi } from '@/api'
-import type { Course } from '@/api'
+import { courseApi, enrollmentApi, reviewApi } from '@/api'
+import type { Course, Review } from '@/api'
 import { parseTags } from '@/stores/enrollmentStore'
 import { extractApiErrorStatus } from '@/utils/apiErrors'
 
@@ -102,6 +166,15 @@ const loading = ref(false)
 const error = ref('')
 const enrolled = ref(false)
 const enrolling = ref(false)
+
+const reviews         = ref<Review[]>([])
+const reviewsLoading  = ref(false)
+const hasReviewed     = ref(false)
+const draftRating     = ref(0)
+const hoverRating     = ref(0)
+const draftComment    = ref('')
+const submittingReview = ref(false)
+const reviewError     = ref('')
 
 const BANDS = [
   'linear-gradient(135deg,#1e3a8a,#3b82f6)',
