@@ -58,6 +58,7 @@
                   <strong>Due:</strong> {{ formatDateTime(course.dueDate) }}
                 </p>
                 <div class="course-actions">
+                  <button type="button" class="course-btn dates" @click="onManageDates(course.uuid)">Dates</button>
                   <button type="button" class="course-btn edit" @click="onEditCourse(course.uuid)">Edit</button>
                   <button type="button" class="course-btn delete" @click="onDeleteCourse(course.uuid)">Delete</button>
                 </div>
@@ -143,6 +144,11 @@ const onCreateCourse = async () => {
 const onEditCourse = async (uuid: Course['uuid']) => {
   actionError.value = ''
   await router.push(`/professor/courses/${encodeURIComponent(uuid)}/edit`)
+}
+
+const onManageDates = async (uuid: Course['uuid']) => {
+  actionError.value = ''
+  await router.push(`/professor/courses/${encodeURIComponent(uuid)}/dates`)
 }
 
 const onDeleteCourse = async (uuid: Course['uuid']) => {
@@ -342,6 +348,12 @@ const toCourseHref = (link: string) => {
   background: #e0f2fe;
   border-color: #bae6fd;
   color: #075985;
+}
+
+.course-btn.dates {
+  background: #ede9fe;
+  border-color: #ddd6fe;
+  color: #5b21b6;
 }
 
 .course-btn.delete {

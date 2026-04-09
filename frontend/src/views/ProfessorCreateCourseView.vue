@@ -14,189 +14,90 @@
         Loading course details...
       </div>
 
-      <div v-else>
-        <form class="form" @submit.prevent="onSubmit">
-          <label class="field">
-            <span>Title *</span>
-            <input
-              v-model.trim="form.title"
-              type="text"
-              maxlength="255"
-              placeholder="e.g., Introduction to Databases"
-              required
-            />
-          </label>
+      <form v-else class="form" @submit.prevent="onSubmit">
+        <label class="field">
+          <span>Title *</span>
+          <input
+            v-model.trim="form.title"
+            type="text"
+            maxlength="255"
+            placeholder="e.g., Introduction to Databases"
+            required
+          />
+        </label>
 
-          <label class="field">
-            <span>Code *</span>
-            <input
-              v-model.trim="form.code"
-              type="text"
-              maxlength="50"
-              placeholder="e.g., COMP-4350"
-              required
-            />
-          </label>
+        <label class="field">
+          <span>Code *</span>
+          <input
+            v-model.trim="form.code"
+            type="text"
+            maxlength="50"
+            placeholder="e.g., COMP-4350"
+            required
+          />
+        </label>
 
-          <label class="field">
-            <span>Description</span>
-            <textarea
-              v-model.trim="form.description"
-              rows="4"
-              placeholder="Optional course description"
-            />
-          </label>
+        <label class="field">
+          <span>Description</span>
+          <textarea
+            v-model.trim="form.description"
+            rows="4"
+            placeholder="Optional course description"
+          />
+        </label>
 
-          <label class="field">
-            <span>Tags</span>
-            <input
-              v-model.trim="form.tags"
-              type="text"
-              maxlength="1000"
-              placeholder="e.g., databases, sql, backend"
-            />
-          </label>
+        <label class="field">
+          <span>Tags</span>
+          <input
+            v-model.trim="form.tags"
+            type="text"
+            maxlength="1000"
+            placeholder="e.g., databases, sql, backend"
+          />
+        </label>
 
-          <label class="field">
-            <span>Material</span>
-            <textarea
-              v-model.trim="form.material"
-              rows="3"
-              placeholder="Optional material summary or notes"
-            />
-          </label>
+        <label class="field">
+          <span>Material</span>
+          <textarea
+            v-model.trim="form.material"
+            rows="3"
+            placeholder="Optional material summary or notes"
+          />
+        </label>
 
-          <label class="field">
-            <span>Due Date</span>
-            <input
-              v-model="form.dueDate"
-              type="datetime-local"
-            />
-          </label>
+        <label class="field">
+          <span>Due Date</span>
+          <input
+            v-model="form.dueDate"
+            type="datetime-local"
+          />
+        </label>
 
-          <label class="field">
-            <span>Link</span>
-            <input
-              v-model.trim="form.link"
-              type="text"
-              maxlength="1000"
-              placeholder="Optional course link (https://... or www...)"
-            />
-          </label>
+        <label class="field">
+          <span>Link</span>
+          <input
+            v-model.trim="form.link"
+            type="text"
+            maxlength="1000"
+            placeholder="Optional course link (https://... or www...)"
+          />
+        </label>
 
-          <p v-if="errorMessage" class="notice error" role="alert">{{ errorMessage }}</p>
+        <p v-if="errorMessage" class="notice error" role="alert">{{ errorMessage }}</p>
 
-          <div class="actions">
-            <button type="button" class="btn secondary" @click="goBack" :disabled="isSubmitting">
-              Cancel
-            </button>
-            <button type="submit" class="btn primary" :disabled="isSubmitting">
-              {{
-                isSubmitting
-                  ? (isEditMode ? 'Saving...' : 'Creating...')
-                  : (isEditMode ? 'Save Changes' : 'Create')
-              }}
-            </button>
-          </div>
-        </form>
-
-        <section v-if="isEditMode" class="important-dates-section">
-          <h2 class="section-title">Important Dates</h2>
-          <p class="section-subtitle">Add assignment, quiz, or lab due dates for this course.</p>
-
-          <form class="form important-date-form" @submit.prevent="onImportantDateSubmit">
-            <label class="field">
-              <span>Title *</span>
-              <input
-                v-model.trim="importantDateForm.title"
-                type="text"
-                maxlength="255"
-                placeholder="e.g., Assignment 1"
-                required
-              />
-            </label>
-
-            <label class="field">
-              <span>Description</span>
-              <textarea
-                v-model.trim="importantDateForm.description"
-                rows="3"
-                placeholder="Optional notes"
-              />
-            </label>
-
-            <label class="field">
-              <span>Due At *</span>
-              <input
-                v-model="importantDateForm.dueAt"
-                type="datetime-local"
-                required
-              />
-            </label>
-
-            <p v-if="importantDateError" class="notice error" role="alert">{{ importantDateError }}</p>
-
-            <div class="actions">
-              <button
-                v-if="editingImportantDateId !== null"
-                type="button"
-                class="btn secondary"
-                :disabled="isSavingImportantDate"
-                @click="resetImportantDateForm"
-              >
-                Cancel Edit
-              </button>
-              <button type="submit" class="btn primary" :disabled="isSavingImportantDate">
-                {{
-                  isSavingImportantDate
-                    ? (editingImportantDateId !== null ? 'Saving...' : 'Adding...')
-                    : (editingImportantDateId !== null ? 'Save Date' : 'Add Date')
-                }}
-              </button>
-            </div>
-          </form>
-
-          <div v-if="importantDateStore.loading" class="notice info" role="status">
-            Loading important dates...
-          </div>
-
-          <div v-else-if="sortedImportantDates.length" class="important-date-list">
-            <article
-              v-for="importantDate in sortedImportantDates"
-              :key="importantDate.id"
-              class="important-date-item"
-            >
-              <div>
-                <h3 class="important-date-title">{{ importantDate.title }}</h3>
-                <p class="important-date-meta">{{ formatDateTime(importantDate.dueAt) }}</p>
-                <p v-if="importantDate.description" class="important-date-meta">
-                  {{ importantDate.description }}
-                </p>
-              </div>
-              <div class="important-date-actions">
-                <button
-                  type="button"
-                  class="btn secondary small-btn"
-                  :disabled="isSavingImportantDate || deletingImportantDateId === importantDate.id"
-                  @click="startEditingImportantDate(importantDate.id)"
-                >
-                  Edit
-                </button>
-                <button
-                  type="button"
-                  class="btn secondary small-btn danger-btn"
-                  :disabled="isSavingImportantDate || deletingImportantDateId === importantDate.id"
-                  @click="onDeleteImportantDate(importantDate.id)"
-                >
-                  {{ deletingImportantDateId === importantDate.id ? 'Deleting...' : 'Delete' }}
-                </button>
-              </div>
-            </article>
-          </div>
-
-          <div v-else class="notice info">No important dates added yet.</div>
-        </section>
-      </div>
+        <div class="actions">
+          <button type="button" class="btn secondary" @click="goBack" :disabled="isSubmitting">
+            Cancel
+          </button>
+          <button type="submit" class="btn primary" :disabled="isSubmitting">
+            {{
+              isSubmitting
+                ? (isEditMode ? 'Saving...' : 'Creating...')
+                : (isEditMode ? 'Save Changes' : 'Create')
+            }}
+          </button>
+        </div>
+      </form>
     </div>
   </section>
 </template>
@@ -206,24 +107,17 @@ import { computed, onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { courseApi } from '@/api'
 import { useCourseStore } from '@/stores/courseStore'
-import { useImportantDateStore } from '@/stores/importantDateStore'
 import { useAuthStore } from '@/stores/authStore'
 import { extractApiErrorMessage } from '@/utils/apiErrors'
 
 const route = useRoute()
 const router = useRouter()
 const courseStore = useCourseStore()
-const importantDateStore = useImportantDateStore()
 const authStore = useAuthStore()
 
 const isSubmitting = ref(false)
 const isLoadingCourse = ref(false)
-const isSavingImportantDate = ref(false)
 const errorMessage = ref('')
-const importantDateError = ref('')
-const editingImportantDateId = ref<number | null>(null)
-const deletingImportantDateId = ref<number | null>(null)
-const courseId = ref<number | null>(null)
 
 const courseUuid = computed(() => (typeof route.params.uuid === 'string' ? route.params.uuid : ''))
 const isEditMode = computed(() => Boolean(courseUuid.value))
@@ -236,18 +130,6 @@ const form = reactive({
   material: '',
   dueDate: '',
   link: '',
-})
-
-const importantDateForm = reactive({
-  title: '',
-  description: '',
-  dueAt: '',
-})
-
-const sortedImportantDates = computed(() => {
-  return [...importantDateStore.importantDates].sort(
-    (a, b) => new Date(a.dueAt).getTime() - new Date(b.dueAt).getTime(),
-  )
 })
 
 const validateRequiredFields = (): string => {
@@ -339,89 +221,6 @@ const onSubmit = async () => {
   }
 }
 
-const validateImportantDateFields = (): string => {
-  if (!importantDateForm.title.trim()) return 'Title is required.'
-  if (!importantDateForm.dueAt.trim()) return 'Due date is required.'
-  return ''
-}
-
-const onImportantDateSubmit = async () => {
-  importantDateError.value = validateImportantDateFields()
-  if (importantDateError.value) return
-
-  const dueDateResult = normalizeAndValidateDueDate(importantDateForm.dueAt)
-  if (dueDateResult.error) {
-    importantDateError.value = dueDateResult.error
-    return
-  }
-
-  if (courseId.value === null || !dueDateResult.iso) {
-    importantDateError.value = 'Save the course before adding important dates.'
-    return
-  }
-
-  isSavingImportantDate.value = true
-  try {
-    const payload = {
-      title: importantDateForm.title.trim(),
-      description: importantDateForm.description.trim(),
-      dueAt: dueDateResult.iso,
-    }
-
-    if (editingImportantDateId.value !== null) {
-      await importantDateStore.update(editingImportantDateId.value, payload)
-    } else {
-      await importantDateStore.create(courseId.value, payload)
-    }
-
-    resetImportantDateForm()
-  } catch (e: unknown) {
-    importantDateError.value = extractApiErrorMessage(e) ?? "We couldn't save this important date right now. Please try again."
-  } finally {
-    isSavingImportantDate.value = false
-  }
-}
-
-const startEditingImportantDate = (id: number) => {
-  const importantDate = importantDateStore.importantDates.find((item) => item.id === id)
-  if (!importantDate) {
-    importantDateError.value = 'Important date not found.'
-    return
-  }
-
-  editingImportantDateId.value = id
-  importantDateError.value = ''
-  importantDateForm.title = importantDate.title
-  importantDateForm.description = importantDate.description ?? ''
-  importantDateForm.dueAt = toDateTimeLocal(importantDate.dueAt)
-}
-
-const resetImportantDateForm = () => {
-  editingImportantDateId.value = null
-  importantDateError.value = ''
-  importantDateForm.title = ''
-  importantDateForm.description = ''
-  importantDateForm.dueAt = ''
-}
-
-const onDeleteImportantDate = async (id: number) => {
-  const confirmed = window.confirm('Delete this important date?')
-  if (!confirmed) return
-
-  deletingImportantDateId.value = id
-  importantDateError.value = ''
-  try {
-    await importantDateStore.remove(id)
-    if (editingImportantDateId.value === id) {
-      resetImportantDateForm()
-    }
-  } catch (e: unknown) {
-    importantDateError.value = extractApiErrorMessage(e) ?? "We couldn't delete this important date right now. Please try again."
-  } finally {
-    deletingImportantDateId.value = null
-  }
-}
-
 const goBack = async () => {
   await router.push(authStore.defaultDashboardPath)
 }
@@ -434,7 +233,6 @@ onMounted(async () => {
   isLoadingCourse.value = true
   try {
     const { data } = await courseApi.getOne(courseUuid.value)
-    courseId.value = data.id
     form.title = data.title ?? ''
     form.code = data.code ?? ''
     form.description = data.description ?? ''
@@ -442,7 +240,6 @@ onMounted(async () => {
     form.material = data.material ?? ''
     form.dueDate = toDateTimeLocal(data.dueDate)
     form.link = data.link ?? ''
-    await importantDateStore.fetchByCourse(data.id)
   } catch (e: unknown) {
     errorMessage.value = extractApiErrorMessage(e) ?? "We couldn't load this course right now. Please try again."
   } finally {
@@ -463,10 +260,6 @@ function toDateTimeLocal(iso: string | null): string {
   const minutes = pad(date.getMinutes())
 
   return `${year}-${month}-${day}T${hours}:${minutes}`
-}
-
-function formatDateTime(iso: string): string {
-  return new Date(iso).toLocaleString()
 }
 </script>
 
@@ -501,57 +294,6 @@ function formatDateTime(iso: string): string {
   margin-top: 1rem;
   display: grid;
   gap: 0.9rem;
-}
-
-.important-dates-section {
-  margin-top: 1.5rem;
-  padding-top: 1.25rem;
-  border-top: 1px solid var(--color-border);
-}
-
-.section-title {
-  margin: 0;
-  font-size: 1.2rem;
-}
-
-.section-subtitle {
-  margin: 0.35rem 0 0;
-  color: var(--color-text-secondary);
-}
-
-.important-date-form {
-  margin-top: 0.9rem;
-}
-
-.important-date-list {
-  margin-top: 1rem;
-  display: grid;
-  gap: 0.75rem;
-}
-
-.important-date-item {
-  border: 1px solid var(--color-border);
-  border-radius: 0.6rem;
-  padding: 0.85rem;
-  display: flex;
-  justify-content: space-between;
-  gap: 0.75rem;
-}
-
-.important-date-title {
-  margin: 0;
-  font-size: 1rem;
-}
-
-.important-date-meta {
-  margin: 0.35rem 0 0;
-  color: var(--color-text-secondary);
-}
-
-.important-date-actions {
-  display: flex;
-  gap: 0.5rem;
-  align-items: flex-start;
 }
 
 .field {
@@ -622,22 +364,5 @@ textarea {
 .btn:disabled {
   opacity: 0.65;
   cursor: not-allowed;
-}
-
-.small-btn {
-  height: 2.15rem;
-  padding: 0 0.8rem;
-}
-
-.danger-btn {
-  border-color: #fecaca;
-  background: #fef2f2;
-  color: #991b1b;
-}
-
-@media (max-width: 640px) {
-  .important-date-item {
-    flex-direction: column;
-  }
 }
 </style>

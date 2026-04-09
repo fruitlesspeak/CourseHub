@@ -22,10 +22,6 @@
             <strong class="summary-value">{{ courseStore.courses.length }}</strong>
           </article>
 
-          <article class="summary-card">
-            <p class="summary-label">Upcoming Due Dates</p>
-            <strong class="summary-value">{{ upcomingItems.length }}</strong>
-          </article>
 
           <article class="summary-card">
             <p class="summary-label">Important Dates</p>
