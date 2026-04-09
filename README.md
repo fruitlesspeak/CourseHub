@@ -121,3 +121,28 @@ Help students discover high quality learning content while empowering instructor
 ---
 
 _You can find our meeting minutes on our Wiki Page or in MeetingMinutes.md_
+
+# Run Locally
+
+To run the project locally with Docker:
+
+1. Update `frontend/nginx.conf.template` so the backend upstream points to the Docker service instead of Railway:
+
+   Replace:
+    ```nginx
+    set $backend_upstream http://backend.railway.internal:8080;
+    ```
+   with:
+    ```nginx
+    set $backend_upstream http://backend:8080;
+    ```
+
+
+
+2. Fill in the values in `.env.example`, then copy the same values into `.env` because `docker compose` reads environment variables from `.env`.
+
+3. Start the required services from the project root:
+
+   ```bash
+   docker compose up --build db frontend backend
+   ```
