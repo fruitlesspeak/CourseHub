@@ -106,14 +106,6 @@
                     >
                       {{ droppingUuids.has(course.uuid) ? 'Dropping...' : 'Drop Course' }}
                     </button>
-                    <button
-                      type="button"
-                      class="course-menu-item placeholder"
-                      disabled
-                      title="Rating will be implemented later."
-                    >
-                      Post Rating (Coming Soon)
-                    </button>
                   </div>
                 </div>
               </article>
@@ -425,10 +417,6 @@ function formatDateTime(isoDate: string): string {
 
 .course-menu-item.drop:hover:not(:disabled) {
   background: #fef2f2;
-}
-
-.course-menu-item.placeholder {
-  color: var(--color-text-secondary);
 }
 
 .course-btn:disabled {
