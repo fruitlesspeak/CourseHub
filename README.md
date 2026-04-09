@@ -122,6 +122,10 @@ Help students discover high quality learning content while empowering instructor
 
 _You can find our meeting minutes on our Wiki Page or in MeetingMinutes.md_
 
+## SonarCloud
+
+Track open code quality issues here: [SonarCloud Issues](https://sonarcloud.io/project/issues?issueStatuses=OPEN%2CCONFIRMED&id=fruitlesspeak_CourseHub)
+
 # Run Locally
 
 To run the project locally with Docker:
