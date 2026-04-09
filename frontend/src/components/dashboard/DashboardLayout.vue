@@ -29,7 +29,7 @@
       <section class="courses-card" aria-label="My Courses">
         <div class="courses-head">
           <h1>{{ title }}</h1>
-          <button class="action-btn" type="button" @click="$emit('primaryAction')">
+          <button v-if="primaryActionText" class="action-btn" type="button" @click="$emit('primaryAction')">
             {{ primaryActionText }}
           </button>
         </div>

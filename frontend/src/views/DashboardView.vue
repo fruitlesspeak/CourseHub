@@ -15,7 +15,6 @@
       @primary-action="onCreateCourse"
     >
       <template #content>
-        <!-- Tab bar -->
         <div class="tab-bar">
           <button
             class="tab-btn"
@@ -31,7 +30,6 @@
           >Reviews</button>
         </div>
 
-        <!-- Courses tab -->
         <template v-if="activeTab === 'courses'">
           <div v-if="courseStore.loading" class="state loading">Loading courses...</div>
 
@@ -72,35 +70,47 @@
           </div>
         </template>
 
-        <!-- Reviews tab -->
         <template v-else>
           <div v-if="reviewStore.loading" class="state loading">Loading reviews...</div>
           <div v-else-if="reviewStore.error" class="state error">{{ reviewStore.error }}</div>
           <div v-else-if="reviewStore.professorReviews.length === 0" class="state empty">
             <p>No reviews yet for your courses.</p>
           </div>
-          <ul v-else class="review-list">
-            <li
-              v-for="review in reviewStore.professorReviews"
-              :key="review.id"
-              class="review-item"
+          <div v-else class="review-groups">
+            <section
+              v-for="group in groupedProfessorReviews"
+              :key="group.courseId"
+              class="review-group"
             >
-              <div class="review-header">
-                <span class="review-course">{{ review.courseTitle }}</span>
-                <span class="review-stars">
-                  <span
-                    v-for="n in 5"
-                    :key="n"
-                    class="star"
-                    :class="n <= review.rating ? 'star-filled' : 'star-empty'"
-                  >★</span>
+              <div class="review-group-header">
+                <h3 class="review-group-title">{{ group.courseTitle }}</h3>
+                <span class="review-group-count">
+                  {{ group.reviews.length }} {{ group.reviews.length === 1 ? 'review' : 'reviews' }}
                 </span>
-                <time class="review-date">{{ formatDate(review.createdAt) }}</time>
               </div>
-              <p class="review-author">{{ review.reviewerFirstName }} {{ review.reviewerLastName }}</p>
-              <p v-if="review.comment" class="review-comment">{{ review.comment }}</p>
-            </li>
-          </ul>
+              <ul class="review-list">
+                <li
+                  v-for="review in group.reviews"
+                  :key="review.id"
+                  class="review-item"
+                >
+                  <div class="review-header">
+                    <span class="review-stars">
+                      <span
+                        v-for="n in 5"
+                        :key="n"
+                        class="star"
+                        :class="n <= review.rating ? 'star-filled' : 'star-empty'"
+                      >&#9733;</span>
+                    </span>
+                    <time class="review-date">{{ formatDate(review.createdAt) }}</time>
+                  </div>
+                  <p class="review-author">{{ review.reviewerFirstName }} {{ review.reviewerLastName }}</p>
+                  <p v-if="review.comment" class="review-comment">{{ review.comment }}</p>
+                </li>
+              </ul>
+            </section>
+          </div>
         </template>
       </template>
     </DashboardLayout>
@@ -108,10 +118,10 @@
 </template>
 
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import DashboardLayout from '@/components/dashboard/DashboardLayout.vue'
-import type { Course } from '@/api'
+import type { Course, Review } from '@/api'
 import { useAuthStore } from '@/stores/authStore'
 import { useCourseStore } from '@/stores/courseStore'
 import { useReviewStore } from '@/stores/reviewStore'
@@ -124,6 +134,26 @@ const courseStore = useCourseStore()
 const reviewStore = useReviewStore()
 
 const activeTab = ref<'courses' | 'reviews'>('courses')
+const groupedProfessorReviews = computed(() => {
+  const groups = new Map<number, { courseId: number; courseTitle: string; reviews: Review[] }>()
+
+  for (const review of reviewStore.professorReviews) {
+    const group = groups.get(review.courseId)
+
+    if (group) {
+      group.reviews.push(review)
+      continue
+    }
+
+    groups.set(review.courseId, {
+      courseId: review.courseId,
+      courseTitle: review.courseTitle,
+      reviews: [review],
+    })
+  }
+
+  return Array.from(groups.values())
+})
 
 async function onReviewsTab() {
   activeTab.value = 'reviews'
@@ -366,13 +396,13 @@ const toCourseHref = (link: string) => {
   }
 }
 
-/* ── Tab bar ── */
 .tab-bar {
   display: flex;
   gap: 0.25rem;
   border-bottom: 1px solid var(--color-border);
   margin-bottom: 1rem;
 }
+
 .tab-btn {
   background: none;
   border: none;
@@ -385,13 +415,48 @@ const toCourseHref = (link: string) => {
   margin-bottom: -1px;
   transition: color 0.15s, border-color 0.15s;
 }
-.tab-btn:hover  { color: var(--color-text-primary); }
+
+.tab-btn:hover {
+  color: var(--color-text-primary);
+}
+
 .tab-btn.active {
   color: var(--color-brand-600);
   border-bottom-color: var(--color-brand-500);
 }
 
-/* ── Review list (professor) ── */
+.review-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.review-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.review-group-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding-bottom: 0.35rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.review-group-title {
+  margin: 0;
+  font-size: 1rem;
+  color: var(--color-text-primary);
+}
+
+.review-group-count {
+  font-size: 0.82rem;
+  color: var(--color-text-secondary);
+}
+
 .review-list {
   list-style: none;
   padding: 0;
@@ -400,6 +465,7 @@ const toCourseHref = (link: string) => {
   flex-direction: column;
   gap: 0.65rem;
 }
+
 .review-item {
   border: 1px solid var(--color-border);
   border-radius: 0.75rem;
@@ -408,35 +474,54 @@ const toCourseHref = (link: string) => {
   flex-direction: column;
   gap: 0.3rem;
 }
+
 .review-header {
   display: flex;
   align-items: center;
   gap: 0.6rem;
   flex-wrap: wrap;
 }
-.review-course {
-  font-weight: 700;
-  font-size: 0.9rem;
-  color: var(--color-text-primary);
+
+.review-stars {
+  display: flex;
+  gap: 1px;
 }
-.review-stars { display: flex; gap: 1px; }
-.star { font-size: 0.85rem; }
-.star-filled { color: #f59e0b; }
-.star-empty  { color: var(--color-border); }
+
+.star {
+  font-size: 0.85rem;
+}
+
+.star-filled {
+  color: #f59e0b;
+}
+
+.star-empty {
+  color: var(--color-border);
+}
+
 .review-date {
   font-size: 0.75rem;
   color: var(--color-text-secondary);
   margin-left: auto;
 }
+
 .review-author {
   margin: 0;
   font-size: 0.82rem;
   color: var(--color-text-secondary);
 }
+
 .review-comment {
   margin: 0;
   font-size: 0.88rem;
   color: var(--color-text-primary);
   line-height: 1.55;
+}
+
+@media (max-width: 720px) {
+  .review-group-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
 }
 </style>
